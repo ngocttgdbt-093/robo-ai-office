@@ -1,0 +1,28 @@
+name: Validate agent foundation
+
+on:
+  push:
+    branches:
+      - 'setup/**'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify required files and safety rules
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s AGENTS.md
+          test -s docs/rollout.md
+          grep -q 'RED → GREEN → REFACTOR' AGENTS.md
+          grep -q 'Never merge' AGENTS.md
+          grep -q 'obra/superpowers' AGENTS.md
+          echo "Foundation validation passed"
