@@ -100,7 +100,7 @@ export function createRuntime(upstream = fetch) {
       });
       try {
         const response = await upstream('https://robo-office-status-bridge-pilot.onrender.com/api/github-status', {
-          signal: AbortSignal.timeout(7500),
+          signal: AbortSignal.timeout(12000),
         });
         if (response.ok) {
           const snapshot = await response.json();
@@ -116,7 +116,7 @@ export function createRuntime(upstream = fetch) {
       try {
         const response = await upstream(`https://api.github.com/repos/${repo}/actions/runs?per_page=12`, {
           headers: { Accept:'application/vnd.github+json', 'User-Agent':'Robo-AI-Office' },
-          signal: AbortSignal.timeout(8500),
+          signal: AbortSignal.timeout(7000),
         });
         if (!response.ok) throw new Error('GitHub HTTP ' + response.status);
         const { workflow_runs } = await response.json();
