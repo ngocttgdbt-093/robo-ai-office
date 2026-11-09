@@ -6,6 +6,52 @@ const json = (data, status = 200) => Response.json(data, {
   headers: { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' },
 });
 
+const workPhases = ['planning', 'implementation', 'verification'];
+const workStatuses = ['running', 'completed', 'failed'];
+
+async function workEvents(request, env) {
+  const key = request.headers.get('X-Robo-Bridge');
+  const bridge = Boolean(key && env.ROBO_WORK_BRIDGE_SECRET && key === env.ROBO_WORK_BRIDGE_SECRET);
+  const owner = request.headers.get('oai-authenticated-user-id');
+  if (!(bridge || (owner && request.method === 'GET'))) return json({ error: 'Chưa có quyền truy cập trạng thái Work.' }, 401);
+  const sql = (query, ...args) => env.DB.prepare(query).bind(...args);
+  try {
+    if (request.method === 'GET') {
+      const { results } = await sql(`SELECT w.id, w.title, w.phase, w.previous, w.status, w.updated, w.agent, w.skills
+        FROM work_events w WHERE NOT EXISTS (
+          SELECT 1 FROM work_events next WHERE next.id = w.id AND next.seq > w.seq
+        ) ORDER BY w.updated DESC, w.seq DESC LIMIT 20`).all();
+      return json(results.map(event => ({ ...event, skills: JSON.parse(event.skills) })));
+    }
+    if (request.method !== 'POST') return json({ error: 'Phương thức không hỗ trợ.' }, 405);
+    if (request.headers.get('Content-Type')?.split(';')[0] !== 'application/json') return json({ error: 'Định dạng không hỗ trợ.' }, 415);
+    const body = await request.text();
+    if (body.length > 1024) return json({ error: 'Yêu cầu quá lớn.' }, 413);
+    const { id, title, phase, status, seq, agent, skills = [] } = JSON.parse(body) ?? {};
+    if (typeof id !== 'string' || !/^[a-f0-9-]{36}$/.test(id) ||
+        typeof title !== 'string' || !title.trim() || title.length > 120 ||
+        typeof agent !== 'string' || !agent.trim() || agent.length > 40 ||
+        !Array.isArray(skills) || skills.length > 5 ||
+        skills.some(skill => typeof skill !== 'string' || !skill.trim() || skill.length > 48) ||
+        !workPhases.includes(phase) || !workStatuses.includes(status) ||
+        !Number.isSafeInteger(seq) || seq < 1) return json({ error: 'Sự kiện không hợp lệ.' }, 400);
+
+    const result = await sql(`INSERT INTO work_events (id, seq, title, phase, previous, status, updated, agent, skills)
+      SELECT ?, ?, ?, ?, CASE WHEN prior.phase <> ? THEN prior.phase ELSE prior.previous END, ?, ?, ?, ?
+      FROM (SELECT 1) seed LEFT JOIN work_events prior ON prior.id = ?
+        AND prior.seq = (SELECT max(seq) FROM work_events WHERE id = ?)
+      WHERE (prior.id IS NULL AND ? = 1 AND ? = 'running')
+         OR (prior.status = 'running' AND prior.seq + 1 = ?)`,
+      id, seq, title.trim(), phase, phase, status, new Date().toISOString(), agent.trim(), JSON.stringify([...new Set(skills.map(skill => skill.trim()))]), id, id, seq, status, seq).run();
+    return (result.meta?.changes ?? result.changes) === 1
+      ? json({ accepted: true }) : json({ error: 'Sự kiện đã được ghi hoặc sai thứ tự.' }, 409);
+  } catch (error) {
+    if (error instanceof SyntaxError) return json({ error: 'Nội dung yêu cầu không hợp lệ.' }, 400);
+    console.error('Work events storage operation failed', error);
+    return json({ error: 'Kho trạng thái Work tạm thời không khả dụng.' }, 503);
+  }
+}
+
 export function createRuntime(upstream = fetch) {
   async function commits(repo, count) {
     const response = await upstream(`https://api.github.com/repos/${organization}/${repo}/commits?per_page=${count}`, {
@@ -26,6 +72,7 @@ export function createRuntime(upstream = fetch) {
 
   return async function runtime(request, env) {
     const url = new URL(request.url);
+    if (url.pathname === '/api/work') return workEvents(request, env);
     if (request.method === 'GET' && url.pathname === '/api/health') {
       const [storage, github] = await Promise.allSettled([
         Promise.resolve().then(() => env.DB.prepare('SELECT id FROM agent_runs LIMIT 0').bind().all()),

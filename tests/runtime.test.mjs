@@ -10,6 +10,7 @@ function setup(upstream = async () => Response.json([{
 }])) {
   const db = new DatabaseSync(':memory:');
   db.exec(readFileSync(new URL('../drizzle/0000_runs.sql', import.meta.url), 'utf8'));
+  db.exec(readFileSync(new URL('../drizzle/0001_work_events.sql', import.meta.url), 'utf8'));
   const DB = { prepare(sql) {
     return { bind(...args) {
       const statement = db.prepare(sql);
@@ -20,7 +21,7 @@ function setup(upstream = async () => Response.json([{
   return (path, options = {}, authenticated = true) => runtime(new Request('https://office.test/api/' + path, {
     ...options,
     headers: { ...(authenticated ? { 'oai-authenticated-user-id': 'test-owner' } : {}), ...options.headers },
-  }), { DB });
+  }), { DB, ROBO_WORK_BRIDGE_SECRET: 'test-bridge' });
 }
 
 test('requires identity and rejects cross-origin writes and unknown repositories', async () => {
@@ -60,4 +61,24 @@ test('health reports storage and GitHub availability without exposing records', 
   const response = await setup()('health', {}, false);
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), { storage: true, github: true });
+});
+
+test('Work bridge rejects anonymous writes and records real phase changes exactly once', async () => {
+  const request = setup();
+  const event = { id: crypto.randomUUID(), title: 'Office release', agent: 'Codex', skills: ['TDD'], phase: 'planning', status: 'running', seq: 1 };
+  const send = (data, key) => request('work', {
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Robo-Bridge': key }, body: JSON.stringify(data),
+  }, false);
+  assert.equal((await send(event, 'wrong')).status, 401);
+  assert.equal((await send(event, 'test-bridge')).status, 200);
+  assert.equal((await send({ ...event, phase: 'implementation', seq: 2 }, 'test-bridge')).status, 200);
+  assert.equal((await send(event, 'test-bridge')).status, 409);
+  let [task] = await (await request('work')).json();
+  assert.deepEqual([task.previous, task.phase, task.status], ['planning', 'implementation', 'running']);
+  assert.equal((await send({ ...event, phase: 'verification', seq: 3, status: 'completed' }, 'test-bridge')).status, 200);
+  assert.equal((await send({ ...event, seq: 4 }, 'test-bridge')).status, 409);
+  [task] = await (await request('work')).json();
+  assert.equal(task.status, 'completed');
+  assert.equal(task.agent, 'Codex');
+  assert.deepEqual(task.skills, ['TDD']);
 });

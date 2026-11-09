@@ -34,3 +34,20 @@ test('all nine robots appear immediately and route controls highlight without cl
   assert.equal(get('flows').attributes.visibility, 'hidden');
   assert.equal(get('toggle-flows').attributes['aria-pressed'], false);
 });
+
+test('camera zooms, rotates, mirrors and resets', () => {
+  const elements = new Map();
+  const get = id => {
+    if (!elements.has(id)) elements.set(id, new Element());
+    return elements.get(id);
+  };
+  const source = readFileSync(new URL('../office.js', import.meta.url), 'utf8').split('const formatter')[0];
+  runInNewContext(source, { document: { getElementById: get, createElement: () => new Element(), createElementNS: () => new Element() } });
+  get('zoom-in').onclick();
+  assert.match(get('camera').attributes.transform, /scale\(1\.2 1\.2\)/);
+  get('rotate-right').onclick();
+  get('mirror-view').onclick();
+  assert.match(get('camera').attributes.transform, /rotate\(90\) scale\(-[0-9.]+ [0-9.]+\)/);
+  get('reset-view').onclick();
+  assert.match(get('camera').attributes.transform, /rotate\(0\) scale\(1 1\)/);
+});
