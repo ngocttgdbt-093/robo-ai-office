@@ -49,3 +49,16 @@ main{max-width:1560px;margin:auto;padding:clamp(14px,3vw,40px)}.intro{margin-bot
 .wall-scene[data-expanded=true] .project-ticker strong,.wall-scene[data-expanded=true] .screen-body strong{font-size:1.1rem}.wall-scene[data-expanded=true] .project-ticker span,.wall-scene[data-expanded=true] .screen-top h3,.wall-scene[data-expanded=true] .screen-top span,.wall-scene[data-expanded=true] .screen-body p,.wall-scene[data-expanded=true] .screen-body ol,.wall-scene[data-expanded=true] .screen-queue{font-size:.8rem}
 .floor-map summary{padding:12px 16px;cursor:pointer;border-top:1px solid var(--line)}.floor-map #scene{border-top:1px solid var(--line)}
 @media(max-width:520px){.wall-scene:not([data-expanded=true]) .screen-queue,.wall-scene:not([data-expanded=true]) #screen-note{display:none}.wall-scene:not([data-expanded=true]) .screen-body{grid-template-columns:1fr}.wall-scene[data-expanded=true] .screen-body{grid-template-columns:1fr}}
+.wall-routes{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1}
+.wall-route-base,.wall-route-pulse{fill:none;stroke:#64ffd2;stroke-linecap:round;stroke-linejoin:round}
+.wall-route-base{stroke-width:5;opacity:.74;filter:drop-shadow(0 0 7px #1edecf)}
+.wall-route-pulse{stroke-width:8;stroke-dasharray:13 27;animation:floor-flow 1.1s linear infinite}
+#wall-sample-routes{opacity:.67}#wall-sample-routes .wall-route-base{stroke-dasharray:11 12}#wall-sample-routes .wall-route-pulse{display:none}
+@keyframes floor-flow{to{stroke-dashoffset:-40}}
+.wall-department{position:absolute;z-index:2;transform:translateX(-50%);display:grid;gap:1px;padding:.38cqw .65cqw;background:#071929ed;color:#d8ebff;border:1px solid #6095ae;border-radius:5px;text-align:center;max-width:28%;pointer-events:none;font-size:clamp(7px,1.12cqw,15px)}
+.wall-department span{color:#a9c6d9;font-size:clamp(6px,.89cqw,12px)}
+.wall-department[data-state=active]{border-color:#64ffd2;box-shadow:0 0 1.2cqw #42ffd481}.wall-department[data-state=active] span{color:#80ffe1}.wall-department[data-state=sending]{border-color:#84c8ff}
+.wall-department--planning{left:50%;top:58%}.wall-department--implementation{left:20%;top:82%}.wall-department--verification{left:80%;top:82%}
+.wall-flow-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 16px}.wall-flow-bar p{margin:3px 0 0;font-size:.76rem}.wall-flow-bar button{flex:none}
+.wall-scene[data-expanded=true] .wall-routes,.wall-scene[data-expanded=true] .wall-department{display:none}
+@media(prefers-reduced-motion:reduce){.wall-route-pulse{animation:none}}

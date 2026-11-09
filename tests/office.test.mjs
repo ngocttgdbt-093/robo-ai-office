@@ -153,3 +153,27 @@ test('the wall uses an integrated backdrop and does not show a passing test on a
   assert.match(source, /id="wall-focus"/);
   assert.match(source, /<details class="floor-map"/);
 });
+
+test('floor arrows require a fresh handoff, and active teams are identified independently', () => {
+  const elements = new Map();
+  const get = id => {
+    if (!elements.has(id)) elements.set(id, new Element());
+    return elements.get(id);
+  };
+  const source = readFileSync(new URL('../office.js', import.meta.url), 'utf8').split('const formatter')[0];
+  const context = { document: { getElementById: get, createElement: () => new Element(), createElementNS: () => new Element() } };
+  runInNewContext(source, context);
+  runInNewContext(`paintWallFlow([
+    {status:'running', phase:'verification', previous:'implementation', updated:new Date(1000).toISOString()},
+    {status:'running', phase:'implementation', updated:new Date(1000).toISOString()},
+  ], 1500)`, context);
+  assert.equal(get('wall-live-routes').children.length, 1);
+  assert.match(get('wall-verification').textContent, /Đang kiểm thử/);
+  assert.match(get('wall-implementation').textContent, /Đang thực hiện/);
+  assert.match(get('wall-flow-status').textContent, /Công nghệ → Kiểm soát/);
+  runInNewContext(`paintWallFlow([{status:'running', phase:'verification', previous:'implementation', phase_started:new Date(1000).toISOString(), updated:new Date(59000).toISOString()}], 60000)`, context);
+  assert.equal(get('wall-live-routes').children.length, 0);
+  assert.match(get('wall-verification').textContent, /Đang kiểm thử/);
+  runInNewContext('paintWallFlow([], 60000, false)', context);
+  assert.match(get('wall-flow-status').textContent, /Mất kết nối/);
+});

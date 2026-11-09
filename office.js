@@ -259,6 +259,78 @@ function paintWorkScreen(task, live = false) {
   }));
 }
 
+const wallTeams = {
+  planning: { name:'Điều phối', activity:'Đang phân tích', point:[835,640] },
+  implementation: { name:'Công nghệ', activity:'Đang thực hiện', point:[580,805] },
+  verification: { name:'Kiểm soát', activity:'Đang kiểm thử', point:[1090,805] },
+};
+const wallFloorRoutes = {
+  'planning:implementation': 'M835 640 C835 695 800 727 739 758 S647 801 580 805',
+  'planning:verification': 'M835 640 C835 695 870 727 931 758 S1023 801 1090 805',
+  'implementation:verification': 'M580 805 Q700 830 835 832 T1090 805',
+};
+function wallRoute(from, to, parent) {
+  const key = from + ':' + to;
+  const path = wallFloorRoutes[key];
+  const [fx,fy] = wallTeams[from].point;
+  const [tx,ty] = wallTeams[to].point;
+  const d = path ?? `M${fx} ${fy} Q835 860 ${tx} ${ty}`;
+  const group = svg('g', {}, parent);
+  svg('path', {d, class:'wall-route-base', 'marker-end':'url(#wall-arrow)'}, group);
+  svg('path', {d, class:'wall-route-pulse'}, group);
+}
+let wallTasks = [];
+let wallConnected = false;
+let wallSample = false;
+function paintWallFlow(tasks, now = Date.now(), connected = true) {
+  wallTasks = tasks;
+  wallConnected = connected;
+  const active = tasks.filter(task => task.status === 'running' && now - Date.parse(task.updated) < 600000);
+  const transfers = new Map();
+  for (const task of active) {
+    if (!wallTeams[task.previous] || !wallTeams[task.phase] || task.previous === task.phase) continue;
+    if (now - Date.parse(task.phase_started ?? task.updated) >= 25000) continue;
+    transfers.set(task.previous + ':' + task.phase, [task.previous, task.phase]);
+  }
+  const liveRoutes = byId('wall-live-routes');
+  const signature = [...transfers.keys()].join('|');
+  if (liveRoutes.flowSignature !== signature) {
+    liveRoutes.flowSignature = signature;
+    liveRoutes.replaceChildren();
+    for (const [from,to] of transfers.values()) wallRoute(from,to,liveRoutes);
+  }
+  const sampleRoutes = byId('wall-sample-routes');
+  const showSample = wallSample && active.length === 0;
+  if (sampleRoutes.showSample !== showSample) {
+    sampleRoutes.showSample = showSample;
+    sampleRoutes.replaceChildren();
+    if (showSample) {
+      wallRoute('planning','implementation',sampleRoutes);
+      wallRoute('implementation','verification',sampleRoutes);
+    }
+  }
+  for (const [phase, team] of Object.entries(wallTeams)) {
+    const running = active.some(task => task.phase === phase);
+    const receiving = [...transfers.values()].some(([,to]) => to === phase);
+    const sending = [...transfers.values()].some(([from]) => from === phase);
+    byId('wall-team-' + phase).setAttribute('data-state', receiving || running ? 'active' : sending ? 'sending' : 'idle');
+    byId('wall-' + phase).textContent = receiving ? 'Nhận bàn giao · ' + team.activity
+      : running ? team.activity : sending ? 'Vừa bàn giao' : 'Chờ tín hiệu';
+  }
+  const message = transfers.size ? [...transfers.values()].map(([from,to]) => wallTeams[from].name + ' → ' + wallTeams[to].name).join(' · ')
+    : active.length ? 'Có bộ phận đang thực thi · Chưa có bàn giao mới'
+    : showSample ? 'Minh họa: Điều phối → Công nghệ → Kiểm soát'
+    : connected ? 'Chưa có tác vụ Work đang chạy' : 'Mất kết nối hoặc đang chờ đọc tín hiệu Work';
+  const status = byId('wall-flow-status');
+  if (status.textContent !== message) status.textContent = message;
+}
+byId('wall-sample').onclick = () => {
+  wallSample = !wallSample;
+  byId('wall-sample').setAttribute('aria-pressed', wallSample);
+  byId('wall-sample').textContent = wallSample ? 'Tắt minh họa' : 'Minh họa luồng';
+  paintWallFlow(wallTasks, Date.now(), wallConnected);
+};
+
 const formatter = new Intl.DateTimeFormat('vi-VN',{ dateStyle:'short', timeStyle:'short', timeZone:'Asia/Ho_Chi_Minh' });
 const date = iso => formatter.format(new Date(iso));
 async function api(path, options) {
@@ -453,6 +525,7 @@ async function refreshWork() {
     const tasks = await api('work');
     if (request !== workRequest) return;
     const now = Date.now();
+    paintWallFlow(tasks, now);
     activeWork.clear();
     workByZone = new Map();
     byId('live-flows').replaceChildren();
@@ -463,7 +536,7 @@ async function refreshWork() {
         const zone = phaseZones[task.phase];
         if (!activeWork.has(zone)) activeWork.set(zone, task);
         workByZone.set(zone, [...(workByZone.get(zone) ?? []), task]);
-        if (task.previous && age < 25_000) drawRoute(phaseZones[task.previous],phaseZones[task.phase],'work',byId('live-flows'));
+        if (task.previous && now - Date.parse(task.phase_started ?? task.updated) < 25_000) drawRoute(phaseZones[task.previous],phaseZones[task.phase],'work',byId('live-flows'));
       }
       const row = document.createElement('li');
       const title = document.createElement('strong');
@@ -502,6 +575,7 @@ async function refreshWork() {
     screenTask = null;
     screenLive = false;
     ocrSignalUnavailable = true;
+    paintWallFlow([], Date.now(), false);
     const offline = document.createElement('li');
     offline.textContent = 'Tạm mất kết nối';
     byId('screen-queue').replaceChildren(offline);

@@ -18,11 +18,19 @@
 <div class="wall-scene" id="wall-scene">
 <img class="wall-art" src="./office-floor.webp" width="1672" height="941" alt="Văn phòng mở với dãy bàn robot, bàn giám đốc ở đầu sàn, cây xanh và phòng họp kính.">
 <div class="project-ticker"><span id="project-led-caption">DỰ ÁN ĐANG CHẠY</span><strong id="project-led">ĐANG CHỜ DỰ ÁN</strong></div>
+<svg class="wall-routes" viewBox="0 0 1672 941" aria-hidden="true">
+<defs><marker id="wall-arrow" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="10" markerHeight="10" orient="auto"><path d="M0 0L12 6 0 12 3 6Z" fill="#64ffd2"/></marker></defs>
+<g id="wall-live-routes"></g><g id="wall-sample-routes"></g>
+</svg>
+<div class="wall-department wall-department--planning" id="wall-team-planning"><strong>Điều phối</strong><span id="wall-planning">Chờ tín hiệu</span></div>
+<div class="wall-department wall-department--implementation" id="wall-team-implementation"><strong>Công nghệ</strong><span id="wall-implementation">Chờ tín hiệu</span></div>
+<div class="wall-department wall-department--verification" id="wall-team-verification"><strong>Kiểm soát</strong><span id="wall-verification">Chờ tín hiệu</span></div>
 <section id="work-screen" class="work-screen" aria-labelledby="screen-title">
 <div class="screen-top"><h3 id="screen-title">Màn hình điều hành</h3><span id="screen-source">WORK LIVE</span></div>
 <div class="screen-body"><div class="screen-main"><strong id="screen-heading">Đang chờ tín hiệu Work</strong><p id="screen-task"></p><p id="screen-note">Màn hình đổi chế độ khi nguồn thực thi gửi sự kiện.</p><ol id="screen-lines"></ol></div><aside class="screen-queue" aria-label="Tác vụ song song"><h4>Đang thực hiện</h4><ul id="screen-queue"><li>Chưa có tín hiệu</li></ul></aside></div>
 </section>
 </div>
+<div class="wall-flow-bar"><div><strong>Luồng công việc</strong><p id="wall-flow-status" role="status">Đang đọc tín hiệu Work…</p></div><button id="wall-sample" type="button" aria-pressed="false">Minh họa luồng</button></div>
 <details class="floor-map"><summary>Sơ đồ tương tác · Xoay và thu phóng</summary>
 <div class="bar"><div><p class="eyebrow">01 / KHÔNG GIAN LÀM VIỆC</p><h3>Sơ đồ khu vực</h3></div><div class="map-actions"><button id="toggle-flows" type="button" aria-controls="flows" aria-pressed="true">Mũi tên mô phỏng</button><button id="overview" type="button">Toàn cảnh</button></div></div>
 <div class="camera-controls" role="group" aria-label="Điều khiển góc nhìn">

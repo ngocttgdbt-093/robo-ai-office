@@ -17,7 +17,10 @@ async function workEvents(request, env) {
   const sql = (query, ...args) => env.DB.prepare(query).bind(...args);
   try {
     if (request.method === 'GET') {
-      const { results } = await sql(`SELECT w.id, w.title, w.phase, w.previous, w.status, w.updated, w.agent, w.skills, w.project
+      const { results } = await sql(`SELECT w.id, w.title, w.phase, w.previous, w.status, w.updated, w.agent, w.skills, w.project,
+        (SELECT first.updated FROM work_events first WHERE first.id = w.id AND first.seq =
+          1 + coalesce((SELECT max(prior.seq) FROM work_events prior
+            WHERE prior.id = w.id AND prior.seq < w.seq AND prior.phase <> w.phase), 0)) AS phase_started
         FROM work_events w WHERE NOT EXISTS (
           SELECT 1 FROM work_events next WHERE next.id = w.id AND next.seq > w.seq
         ) ORDER BY w.updated DESC, w.seq DESC LIMIT 20`).all();
