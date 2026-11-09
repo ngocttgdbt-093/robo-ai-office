@@ -10,10 +10,11 @@ export function createBridge({ token, maxBytes = 16384 } = {}) {
   };
   return http.createServer(async (req, res) => {
     const respond = (code, data) => { res.writeHead(code, {'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'});res.end(JSON.stringify(data)); };
-    if (req.url === '/health' && req.method === 'GET') return respond(200, {ok:true, service:'robo-status-bridge'});
+    const pathname = new URL(req.url, 'http://localhost').pathname;
+    if (pathname === '/health' && req.method === 'GET') return respond(200, {ok:true, service:'robo-status-bridge'});
     if (!check(req.headers.authorization?.replace(/^Bearer /, ''))) return respond(401,{error:'unauthorized'});
-    if (req.url === '/api/status' && req.method === 'GET') return respond(200,{agents:store.list()});
-    if (req.url !== '/api/events' || req.method !== 'POST') return respond(404,{error:'not_found'});
+    if (pathname === '/api/status' && req.method === 'GET') return respond(200,{agents:store.list()});
+    if (pathname !== '/api/events' || req.method !== 'POST') return respond(404,{error:'not_found'});
     let body = '', bytes = 0;
     try {
       for await (const chunk of req) {
