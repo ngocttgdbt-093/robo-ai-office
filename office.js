@@ -330,6 +330,13 @@ function paintWallFlow(tasks, now = Date.now(), connected = true) {
     const running = active.some(task => task.phase === phase);
     const receiving = [...transfers.values()].some(([,to]) => to === phase);
     const sending = [...transfers.values()].some(([from]) => from === phase);
+    const workMode = {planning:'planning', implementation:'code', verification:'test'}[phase];
+    const ciMode = ci && phase === 'verification' ? ci.status === 'in_progress' ? 'ci' : ciActive(ci) ? 'waiting' : null : null;
+    const stationMode = running || showSample ? workMode : ciMode ?? 'idle';
+    byId('wall-station-' + phase).setAttribute('data-activity', stationMode);
+    byId('wall-monitor-' + phase).textContent = showSample ? 'MINH HỌA' : {
+      planning:'ĐIỀU PHỐI',code:'CODE · MINH HỌA',test:'KIỂM THỬ',ci:'CI ĐANG CHẠY',waiting:'CI XẾP HÀNG',idle:'',
+    }[stationMode];
     if (ci && (phase === 'verification' || phase === 'planning')) {
       byId('wall-team-' + phase).setAttribute('data-state', ciActive(ci) ? 'active' : 'sending');
       byId('wall-' + phase).textContent = phase === 'verification' ? 'CI · ' + ciLabel(ci) : 'Nhận trạng thái CI';

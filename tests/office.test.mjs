@@ -196,3 +196,22 @@ test('a real failed CI run remains on the wall without implying Work is running'
   assert.equal(get('wall-live-routes').children.length, 1);
   assert.match(get('wall-flow-status').textContent, /GitHub Actions → Văn phòng.*Thất bại/);
 });
+
+test('only working stations animate and queued CI does not simulate coding', () => {
+  const elements = new Map();
+  const get = id => {
+    if (!elements.has(id)) elements.set(id, new Element());
+    return elements.get(id);
+  };
+  const source = readFileSync(new URL('../office.js', import.meta.url), 'utf8').split('const formatter')[0];
+  const context = {document:{getElementById:get, createElement:()=>new Element(), createElementNS:()=>new Element()}};
+  runInNewContext(source, context);
+  runInNewContext("paintWallFlow([{status:'running',phase:'implementation',updated:new Date(1000).toISOString()}], 1500)", context);
+  assert.equal(get('wall-station-implementation').attributes['data-activity'], 'code');
+  assert.equal(get('wall-station-planning').attributes['data-activity'], 'idle');
+  runInNewContext("ciRun = {status:'queued',name:'CI'}; paintWallFlow([])", context);
+  assert.equal(get('wall-station-verification').attributes['data-activity'], 'waiting');
+  assert.equal(get('wall-station-implementation').attributes['data-activity'], 'idle');
+  runInNewContext("ciRun = {status:'completed',conclusion:'failure',name:'CI'}; paintWallFlow([])", context);
+  assert.equal(get('wall-station-verification').attributes['data-activity'], 'idle');
+});

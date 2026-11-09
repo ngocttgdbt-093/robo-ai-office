@@ -20,7 +20,24 @@
 <div class="project-ticker"><span id="project-led-caption">DỰ ÁN ĐANG CHẠY</span><strong id="project-led">ĐANG CHỜ DỰ ÁN</strong></div>
 <svg class="wall-routes" viewBox="0 0 1672 941" aria-hidden="true">
 <defs><marker id="wall-arrow" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="10" markerHeight="10" orient="auto"><path d="M0 0L12 6 0 12 3 6Z" fill="#64ffd2"/></marker></defs>
+<defs>
+<clipPath id="head-planning"><ellipse cx="834" cy="498" rx="33" ry="29"/></clipPath>
+<clipPath id="head-implementation"><ellipse cx="208" cy="682" rx="52" ry="47"/></clipPath>
+<clipPath id="head-verification"><ellipse cx="1498" cy="682" rx="52" ry="47"/></clipPath>
+</defs>
 <g id="wall-live-routes"></g><g id="wall-sample-routes"></g>
+<g class="wall-station" id="wall-station-planning" data-activity="idle">
+<image class="station-robot" href="./office-floor.webp" width="1672" height="941" clip-path="url(#head-planning)"/>
+<g class="station-monitor" transform="translate(900 513)"><rect width="116" height="44" rx="5"/><text x="8" y="17" id="wall-monitor-planning">ĐIỀU PHỐI</text><path class="station-feed" d="M9 29h29m7 0h35m7 0h17m-95 6h49m7 0h20"/></g>
+</g>
+<g class="wall-station" id="wall-station-implementation" data-activity="idle">
+<image class="station-robot" href="./office-floor.webp" width="1672" height="941" clip-path="url(#head-implementation)"/>
+<g class="station-monitor" transform="translate(266 658)"><rect width="157" height="74" rx="4"/><text x="9" y="18" id="wall-monitor-implementation">CODE · MINH HỌA</text><text class="station-code" x="9" y="32">const task = next();</text><text class="station-code" x="9" y="45">await run(task);</text><text class="station-code" x="9" y="58">updateStatus(task);</text><path class="station-feed" d="M9 66h112"/></g>
+</g>
+<g class="wall-station" id="wall-station-verification" data-activity="idle">
+<image class="station-robot" href="./office-floor.webp" width="1672" height="941" clip-path="url(#head-verification)"/>
+<g class="station-monitor" transform="translate(1284 658)"><rect width="152" height="74" rx="4"/><text x="9" y="18" id="wall-monitor-verification">KIỂM THỬ</text><path class="station-feed" d="M9 32h106m-106 9h85m-85 9h117m-117 9h65"/></g>
+</g>
 </svg>
 <div class="wall-department wall-department--planning" id="wall-team-planning"><strong>Điều phối</strong><span id="wall-planning">Chờ tín hiệu</span></div>
 <div class="wall-department wall-department--implementation" id="wall-team-implementation"><strong>Công nghệ</strong><span id="wall-implementation">Chờ tín hiệu</span></div>
