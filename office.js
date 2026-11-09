@@ -1,7 +1,7 @@
 const rooms = [
   ['Giám đốc', 'Phê duyệt và điều hành', '#b6a16a'],
   ['AI Manager', 'Điều phối tác vụ và xem trạng thái Agent.', '#49b7d1'],
-  ['Phòng họp AI', 'Không gian phối hợp và phản biện.', '#887cba'],
+  ['Phòng họp AI', 'Bàn họp 10 chỗ cho người điều hành và nhân viên.', '#887cba'],
   ['Công nghệ', 'Theo dõi hoạt động mã nguồn và giao tác vụ kiểm tra commit.', '#60a6d6'],
   ['Dữ liệu', 'Theo dõi dự án dashboard và báo cáo.', '#59b8a6'],
   ['Nghiệp vụ', 'Không gian nghiệp vụ bảo hiểm.', '#b08667'],
@@ -16,7 +16,7 @@ const svg = (tag, attributes, parent) => {
   parent.append(node);
   return node;
 };
-const point = (x, y, z = 0) => [450 + 1.14 * (x - y), 125 + .52 * (x + y) - z];
+const point = (x, y, z = 0) => [450 + 1.14 * (x - y), 78 + .52 * (x + y) - z];
 const face = (parent, vertices, fill, extra = {}) => svg('polygon', {
   points: vertices.map(vertex => point(...vertex).join(',')).join(' '), fill, ...extra,
 }, parent);
@@ -32,9 +32,26 @@ const label = (parent, text, [x,y], className = '') => {
   labels.push({node,x,y});
   return node;
 };
-block(byId('floor'), -15, -15, 349, 349, -16, -3, ['#1a384e','#0a1c2c','#102c40'], {stroke:'#4a788c'});
+block(byId('floor'), -15, -15, 362, 349, -16, -3, ['#1a384e','#0a1c2c','#102c40'], {stroke:'#4a788c'});
 const controls = [];
-const position = index => [(index % 3) * 111, Math.floor(index / 3) * 111];
+const zonePositions = [[0,0],[111,0],[228,0],[0,111],[111,111],[222,111],[0,222],[111,222],[222,222]];
+const position = index => zonePositions[index];
+const floor = byId('floor');
+for (const offset of [101, 212]) {
+  face(floor, [[offset,-5],[offset+3,-5],[offset+3,322],[offset,322]], '#5b9db361');
+  face(floor, [[-5,offset],[327,offset],[327,offset+3],[-5,offset+3]], '#5b9db361');
+}
+for (const [x,y] of [[-5,40],[47,-7],[101,319],[3,321],[323,213],[324,318]]) {
+  const plants = byId('plants');
+  const plant = svg('g',{class:'planter'},plants);
+  block(plant,x-7,y-7,14,14,0,12,['#547167','#324c49','#283d3c']);
+  const [cx,cy] = point(x,y,14);
+  svg('path',{d:`M${cx} ${cy} v-23`,stroke:'#52a980','stroke-width':2},plant);
+  for (const [dx,dy,angle,color] of [[-6,-10,-45,'#36a878'],[6,-13,43,'#65dc94'],[-5,-20,-38,'#4fcb87'],[3,-25,22,'#97eaa3']]) {
+    const lx = cx+dx, ly = cy+dy;
+    svg('ellipse',{cx:lx,cy:ly,rx:4,ry:8,fill:color,transform:`rotate(${angle} ${lx} ${ly})`},plant);
+  }
+}
 const routes = [
   [0, 1, 'command'], [1, 2, 'command'], [1, 3, 'command'], [1, 4, 'command'],
   [2, 5, 'activity'], [3, 4, 'activity'], [4, 5, 'activity'],
@@ -60,25 +77,45 @@ const activeWork = new Map();
 let workByZone = new Map();
 let showFlows = true;
 let serverRunning = false;
+let serverRepo = null;
+let screenTask = null;
+let screenLive = false;
 let selected = -1;
 let running = false;
 let submitting = false;
 
 rooms.forEach(([name, description, color], i) => {
   const [x, y] = position(i);
-  const group = svg('g', { class:'room', role:'button', tabindex:0, 'aria-label':name }, byId('rooms'));
-  face(group, [[x,y],[x+95,y],[x+95,y+95],[x,y+95]], color + '48', {class:'tile'});
+  const director = i === 0;
+  const meeting = i === 2;
+  const zoneClass = director ? 'director-zone' : meeting ? 'meeting-zone' : 'staff-zone';
+  const group = svg('g', { class:'room ' + zoneClass, role:'button', tabindex:0, 'aria-label':name }, byId('rooms'));
+  const width = meeting ? 105 : 95;
+  face(group, [[x,y],[x+width,y],[x+width,y+95],[x,y+95]], color + '48', {class:'tile'});
   const interior = svg('g', {class:'interior'}, group);
-  const lounge = [2, 5, 6].includes(i);
-  block(interior,x+17,y+16,54,lounge ? 38 : 28,0,15,['#c5e4ec','#688da0','#4b6d84']);
-  if (lounge) {
-    block(interior,x+20,y+59,24,12,0,8,[color,'#3c596a','#27465b']);
-    block(interior,x+14,y+25,7,22,0,11,[color,'#3c596a','#27465b']);
+  if (meeting) {
+    const glass = {class:'meeting-glass'};
+    face(interior, [[x,y],[x+105,y],[x+105,y,25],[x,y,25]], '#67c9df32', glass);
+    face(interior, [[x+105,y],[x+105,y+76],[x+105,y+76,25],[x+105,y,25]], '#67c9df26', glass);
+    block(interior,x+22,y+30,63,32,0,13,['#9bb7c6','#557284','#3c586d']);
+    const seats = [[8,41],[91,41],...[24,41,58,75].flatMap(seat => [[seat,15],[seat,68]])];
+    for (const [sx,sy] of seats) {
+      block(interior,x+sx,y+sy,9,9,0,6,['#6c7baf','#3d5278','#2a3c62'],{class:'meeting-chair'});
+      block(interior,x+sx,y+sy+(sy < 30 ? 0 : 7),9,2,6,12,['#96a6cb','#566b98','#3c527c']);
+    }
+  } else if (director) {
+    block(interior,x+10,y+9,65,33,0,15,['#f0cea0','#87634c','#694836']);
+    block(interior,x+21,y+15,42,3,15,27,['#88dce9','#143a53','#67bdcf']);
+    block(interior,x+46,y+52,22,19,0,9,['#a97645','#694836','#493727']);
   } else {
-    block(interior,x+29,y+20,29,4,15,35,['#638da4','#123447','#7be8ff']);
+    block(interior,x+12,y+16,64,27,0,13,['#abc8d7','#567485','#405c71']);
+    for (const offset of [20,46]) {
+      block(interior,x+offset,y+19,19,3,13,29,['#6ba8bc','#163d54','#66d6e8']);
+    }
+    block(interior,x+51,y+53,17,14,0,6,['#466a88','#36536a','#233e52']);
   }
   const robot = svg('g', {class:'robot'}, group);
-  const [cx,cy] = point(x+59,y+58,15);
+  const [cx,cy] = point(x+(meeting ? 60 : 59),y+(meeting ? 50 : 58),15);
   svg('ellipse',{cx,cy:cy+14,rx:15,ry:5,fill:'#0a2336'},robot);
   svg('rect',{x:cx-10,y:cy-5,width:20,height:18,rx:7,fill:'url(#silver)'},robot);
   svg('rect',{x:cx-15,y:cy-22,width:30,height:20,rx:8,fill:'url(#silver)',stroke:'#bcecff'},robot);
@@ -145,7 +182,7 @@ function paintCamera() {
   const fit = angle % 180 === 0 ? 1 : 0.63;
   const scale = zoom / 100 * fit;
   const direction = mirrored ? -1 : 1;
-  byId('camera').setAttribute('transform', `translate(${450 + panX} ${253 + panY}) rotate(${angle}) scale(${scale * direction} ${scale}) translate(-450 -253)`);
+  byId('camera').setAttribute('transform', `translate(${450 + panX} ${225 + panY}) rotate(${angle}) scale(${scale * direction} ${scale}) translate(-450 -225)`);
   for (const {node,x,y} of labels) {
     node.setAttribute('transform', `translate(${x} ${y}) scale(${direction} 1) rotate(${-angle}) translate(${-x} ${-y})`);
   }
@@ -176,6 +213,11 @@ const screenModes = {
   verification: { title:'Đang kiểm thử', lines:['▶  Chuẩn bị kiểm tra', '…  Đối chiếu hành vi và kết quả'] },
 };
 function paintWorkScreen(task, live = false) {
+  const project = live ? task.project : serverRunning ? serverRepo : null;
+  const active = live || serverRunning;
+  byId('project-led').textContent = project ?? (live ? task.title : 'ĐANG CHỜ DỰ ÁN');
+  byId('project-led-caption').textContent = live && !project ? 'TÁC VỤ ĐANG CHẠY' : 'DỰ ÁN ĐANG CHẠY';
+  byId('project-led').setAttribute('data-active', active);
   const mode = live ? screenModes[task.phase] : null;
   const outcome = {completed:'Hoàn tất', failed:'Gặp lỗi', running:'Chưa có cập nhật mới'};
   byId('work-screen').setAttribute('data-mode', live ? task.phase : 'idle');
@@ -234,7 +276,9 @@ async function history() {
   try {
     const runs = await api('runs');
     if (request !== historyRequest) return;
-    serverRunning = runs.some(run => run.status === 'running');
+    serverRepo = runs.find(run => run.status === 'running')?.repo ?? null;
+    serverRunning = Boolean(serverRepo);
+    paintWorkScreen(screenTask, screenLive);
     running = submitting || serverRunning;
     byId('history').replaceChildren(...runs.map(run => {
       const li = document.createElement('li');
@@ -350,7 +394,9 @@ async function refreshWork() {
       return row;
     }));
     const recent = tasks.find(task => task.status === 'running' && now - Date.parse(task.updated) < 10 * 60_000);
-    paintWorkScreen(recent ?? tasks[0], Boolean(recent));
+    screenTask = recent ?? tasks[0];
+    screenLive = Boolean(recent);
+    paintWorkScreen(screenTask, screenLive);
     byId('work-status').textContent = tasks.length ? 'Cập nhật từ các phiên Work đã kết nối.' : 'Chưa có tác vụ Work được kết nối.';
     paintRooms();
   } catch {
@@ -358,6 +404,8 @@ async function refreshWork() {
     activeWork.clear();
     workByZone = new Map();
     byId('live-flows').replaceChildren();
+    screenTask = null;
+    screenLive = false;
     paintWorkScreen();
     byId('work-status').textContent = 'Tạm mất kết nối. Lịch sử bên dưới có thể đã cũ.';
     paintRooms();

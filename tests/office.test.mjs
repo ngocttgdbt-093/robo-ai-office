@@ -70,3 +70,21 @@ test('central screen switches between coding and testing from real phase status'
   runInNewContext("paintWorkScreen({phase:'verification',status:'failed',agent:'Codex'}, false)", context);
   assert.match(get('screen-heading').textContent, /Gặp lỗi/);
 });
+
+test('trading floor has a front director desk, ten meeting seats and greenery', () => {
+  const elements = new Map();
+  const get = id => {
+    if (!elements.has(id)) elements.set(id, new Element());
+    return elements.get(id);
+  };
+  const source = readFileSync(new URL('../office.js', import.meta.url), 'utf8').split('const formatter')[0];
+  const context = { document: { getElementById: get, createElement: () => new Element(), createElementNS: () => new Element() } };
+  runInNewContext(source, context);
+  const zones = get('rooms').children;
+  assert.ok(zones[0].attributes.class.includes('director-zone'));
+  const meeting = zones.find(zone => zone.attributes['aria-label'] === 'Phòng họp AI');
+  assert.equal(meeting.children.flatMap(node => node.children).filter(node => node.attributes.class === 'meeting-chair').length, 10);
+  assert.ok(get('plants').children.length >= 4);
+  runInNewContext("paintWorkScreen({phase:'implementation',status:'running',agent:'Codex',title:'Task',project:'ROBO AI OFFICE'}, true)", context);
+  assert.equal(get('project-led').textContent, 'ROBO AI OFFICE');
+});

@@ -17,7 +17,7 @@ async function workEvents(request, env) {
   const sql = (query, ...args) => env.DB.prepare(query).bind(...args);
   try {
     if (request.method === 'GET') {
-      const { results } = await sql(`SELECT w.id, w.title, w.phase, w.previous, w.status, w.updated, w.agent, w.skills
+      const { results } = await sql(`SELECT w.id, w.title, w.phase, w.previous, w.status, w.updated, w.agent, w.skills, w.project
         FROM work_events w WHERE NOT EXISTS (
           SELECT 1 FROM work_events next WHERE next.id = w.id AND next.seq > w.seq
         ) ORDER BY w.updated DESC, w.seq DESC LIMIT 20`).all();
@@ -27,22 +27,23 @@ async function workEvents(request, env) {
     if (request.headers.get('Content-Type')?.split(';')[0] !== 'application/json') return json({ error: 'Định dạng không hỗ trợ.' }, 415);
     const body = await request.text();
     if (body.length > 1024) return json({ error: 'Yêu cầu quá lớn.' }, 413);
-    const { id, title, phase, status, seq, agent, skills = [] } = JSON.parse(body) ?? {};
+    const { id, title, phase, status, seq, agent, skills = [], project = null } = JSON.parse(body) ?? {};
     if (typeof id !== 'string' || !/^[a-f0-9-]{36}$/.test(id) ||
         typeof title !== 'string' || !title.trim() || title.length > 120 ||
         typeof agent !== 'string' || !agent.trim() || agent.length > 40 ||
+        (project !== null && (typeof project !== 'string' || !project.trim() || project.length > 100)) ||
         !Array.isArray(skills) || skills.length > 5 ||
         skills.some(skill => typeof skill !== 'string' || !skill.trim() || skill.length > 48) ||
         !workPhases.includes(phase) || !workStatuses.includes(status) ||
         !Number.isSafeInteger(seq) || seq < 1) return json({ error: 'Sự kiện không hợp lệ.' }, 400);
 
-    const result = await sql(`INSERT INTO work_events (id, seq, title, phase, previous, status, updated, agent, skills)
-      SELECT ?, ?, ?, ?, CASE WHEN prior.phase <> ? THEN prior.phase ELSE prior.previous END, ?, ?, ?, ?
+    const result = await sql(`INSERT INTO work_events (id, seq, title, phase, previous, status, updated, agent, skills, project)
+      SELECT ?, ?, ?, ?, CASE WHEN prior.phase <> ? THEN prior.phase ELSE prior.previous END, ?, ?, ?, ?, coalesce(?, prior.project)
       FROM (SELECT 1) seed LEFT JOIN work_events prior ON prior.id = ?
         AND prior.seq = (SELECT max(seq) FROM work_events WHERE id = ?)
       WHERE (prior.id IS NULL AND ? = 1 AND ? = 'running')
          OR (prior.status = 'running' AND prior.seq + 1 = ?)`,
-      id, seq, title.trim(), phase, phase, status, new Date().toISOString(), agent.trim(), JSON.stringify([...new Set(skills.map(skill => skill.trim()))]), id, id, seq, status, seq).run();
+      id, seq, title.trim(), phase, phase, status, new Date().toISOString(), agent.trim(), JSON.stringify([...new Set(skills.map(skill => skill.trim()))]), project?.trim() ?? null, id, id, seq, status, seq).run();
     return (result.meta?.changes ?? result.changes) === 1
       ? json({ accepted: true }) : json({ error: 'Sự kiện đã được ghi hoặc sai thứ tự.' }, 409);
   } catch (error) {

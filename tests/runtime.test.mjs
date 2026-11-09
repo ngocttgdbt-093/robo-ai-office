@@ -11,6 +11,7 @@ function setup(upstream = async () => Response.json([{
   const db = new DatabaseSync(':memory:');
   db.exec(readFileSync(new URL('../drizzle/0000_runs.sql', import.meta.url), 'utf8'));
   db.exec(readFileSync(new URL('../drizzle/0001_work_events.sql', import.meta.url), 'utf8'));
+  db.exec(readFileSync(new URL('../drizzle/0002_work_project.sql', import.meta.url), 'utf8'));
   const DB = { prepare(sql) {
     return { bind(...args) {
       const statement = db.prepare(sql);
@@ -65,13 +66,13 @@ test('health reports storage and GitHub availability without exposing records', 
 
 test('Work bridge rejects anonymous writes and records real phase changes exactly once', async () => {
   const request = setup();
-  const event = { id: crypto.randomUUID(), title: 'Office release', agent: 'Codex', skills: ['TDD'], phase: 'planning', status: 'running', seq: 1 };
+  const event = { id: crypto.randomUUID(), title: 'Office release', project: 'ROBO AI OFFICE', agent: 'Codex', skills: ['TDD'], phase: 'planning', status: 'running', seq: 1 };
   const send = (data, key) => request('work', {
     method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Robo-Bridge': key }, body: JSON.stringify(data),
   }, false);
   assert.equal((await send(event, 'wrong')).status, 401);
   assert.equal((await send(event, 'test-bridge')).status, 200);
-  assert.equal((await send({ ...event, phase: 'implementation', seq: 2 }, 'test-bridge')).status, 200);
+  assert.equal((await send({ ...event, phase: 'implementation', seq: 2, project: undefined }, 'test-bridge')).status, 200);
   assert.equal((await send(event, 'test-bridge')).status, 409);
   let [task] = await (await request('work')).json();
   assert.deepEqual([task.previous, task.phase, task.status], ['planning', 'implementation', 'running']);
@@ -80,5 +81,6 @@ test('Work bridge rejects anonymous writes and records real phase changes exactl
   [task] = await (await request('work')).json();
   assert.equal(task.status, 'completed');
   assert.equal(task.agent, 'Codex');
+  assert.equal(task.project, 'ROBO AI OFFICE');
   assert.deepEqual(task.skills, ['TDD']);
 });

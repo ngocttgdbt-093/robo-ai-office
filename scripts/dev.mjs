@@ -6,7 +6,7 @@ import { pathToFileURL } from 'node:url';
 
 const { default: worker } = await import(pathToFileURL(process.cwd() + '/dist/server/index.js'));
 const database = new DatabaseSync(':memory:');
-for (const name of ['0000_runs.sql', '0001_work_events.sql']) database.exec(readFileSync('drizzle/' + name, 'utf8'));
+for (const name of ['0000_runs.sql', '0001_work_events.sql', '0002_work_project.sql']) database.exec(readFileSync('drizzle/' + name, 'utf8'));
 const DB = { prepare(sql) {
   return { bind(...args) {
     const statement = database.prepare(sql);
