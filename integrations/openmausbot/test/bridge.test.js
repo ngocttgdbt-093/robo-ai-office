@@ -17,7 +17,9 @@ test('rejects unauthorized requests and accepts status events',async()=>{
  const server=createBridge({token}); await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  try {
   const base=`http://127.0.0.1:${server.address().port}`;
-  let res=await fetch(`${base}/api/status`); assert.equal(res.status,401);
+  let res=await fetch(`${base}/health?utm_source=chatgpt.com`); assert.equal(res.status,200);
+  assert.deepEqual(await res.json(), {ok:true,service:'robo-status-bridge'});
+  res=await fetch(`${base}/api/status?test=1`); assert.equal(res.status,401);
   res=await fetch(`${base}/api/events`,{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify(event)});
   assert.equal(res.status,202);
   res=await fetch(`${base}/api/status`,{headers:{Authorization:`Bearer ${token}`}});
