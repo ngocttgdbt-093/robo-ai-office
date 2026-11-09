@@ -1,0 +1,27 @@
+name: OpenMausBot bridge CI
+on:
+  pull_request:
+    paths:
+      - 'integrations/openmausbot/**'
+      - '.github/workflows/openmausbot-bridge.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: integrations/openmausbot
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate syntax
+        run: |
+          node --check src/status.js
+          node --check src/server.js
+      - name: Run unit and HTTP integration tests
+        run: npm test
