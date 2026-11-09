@@ -177,3 +177,22 @@ test('floor arrows require a fresh handoff, and active teams are identified inde
   runInNewContext('paintWallFlow([], 60000, false)', context);
   assert.match(get('wall-flow-status').textContent, /Mất kết nối/);
 });
+
+test('a real failed CI run remains on the wall without implying Work is running', () => {
+  const elements = new Map();
+  const get = id => {
+    if (!elements.has(id)) elements.set(id, new Element());
+    return elements.get(id);
+  };
+  const source = readFileSync(new URL('../office.js', import.meta.url), 'utf8').split('const formatter')[0];
+  const context = { document: { getElementById:get, createElement:() => new Element(), createElementNS:() => new Element() } };
+  runInNewContext(source, context);
+  runInNewContext(`ciRun = {name:'OpenMausBot bridge CI', status:'completed', conclusion:'failure', source:'render', updated:'2026-11-09T18:15:12Z', url:'https://github.com/run'};
+    paintWorkScreen(null);
+    paintWallFlow([]);`, context);
+  assert.equal(get('project-led').textContent, 'ROBO AI OFFICE');
+  assert.equal(get('project-led').attributes['data-active'], false);
+  assert.equal(get('screen-heading').textContent, 'Thất bại');
+  assert.equal(get('wall-live-routes').children.length, 1);
+  assert.match(get('wall-flow-status').textContent, /GitHub Actions → Văn phòng.*Thất bại/);
+});

@@ -62,3 +62,5 @@ main{max-width:1560px;margin:auto;padding:clamp(14px,3vw,40px)}.intro{margin-bot
 .wall-flow-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 16px}.wall-flow-bar p{margin:3px 0 0;font-size:.76rem}.wall-flow-bar button{flex:none}
 .wall-scene[data-expanded=true] .wall-routes,.wall-scene[data-expanded=true] .wall-department{display:none}
 @media(prefers-reduced-motion:reduce){.wall-route-pulse{animation:none}}
+.wall-ci-result .wall-route-base{opacity:.6;stroke:#9cd2ff}.wall-ci-result .wall-route-pulse{display:none}.screen-run-link{font-size:inherit;color:#9cd2ff}
+.work-screen[data-ci-result=failure] #screen-heading,.work-screen[data-ci-result=timed_out] #screen-heading{color:#ffada7}.work-screen[data-ci-result=success] #screen-heading{color:#80ffe1}

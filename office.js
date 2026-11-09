@@ -210,6 +210,12 @@ byId('reset-view').onclick = () => changeView(100, 0, false);
 paintCamera();
 
 let ciRun = null;
+const ciActive = run => Boolean(run && ['in_progress','queued','requested','waiting','pending'].includes(run.status));
+function ciLabel(run) {
+  const state = {in_progress:'Đang chạy',queued:'Đang xếp hàng',requested:'Đã yêu cầu',waiting:'Đang chờ',pending:'Đang chờ',completed:'Đã kết thúc'};
+  const outcome = {success:'Thành công',failure:'Thất bại',cancelled:'Đã hủy',timed_out:'Hết thời gian',skipped:'Đã bỏ qua',action_required:'Cần xử lý'};
+  return outcome[run.conclusion] ?? state[run.status] ?? run.status;
+}
 const ocrProject = 'Dự án 03 — OCR giấy tờ TBTN/YCBT';
 let trackedProject = null;
 let ocrSignalUnavailable = false;
@@ -217,6 +223,7 @@ byId('track-ocr').onclick = () => {
   trackedProject = trackedProject ? null : ocrProject;
   byId('track-ocr').setAttribute('aria-pressed', Boolean(trackedProject));
   paintWorkScreen(screenTask, screenLive);
+  paintWallFlow(wallTasks, Date.now(), wallConnected);
 };
 
 byId('wall-focus').onclick = () => {
@@ -233,14 +240,14 @@ const screenModes = {
   verification: { title:'Đang kiểm thử', lines:['Đã nhận tín hiệu kiểm thử', 'Đang chờ bằng chứng kết quả'] },
 };
 function paintWorkScreen(task, live = false) {
-  const ci = !live && !serverRunning ? ciRun : null;
+  const ci = !live && !serverRunning && (!trackedProject || ciActive(ciRun)) ? ciRun : null;
   const project = live ? task.project : serverRunning ? serverRepo : ci ? 'ROBO AI OFFICE' : null;
-  const active = live || serverRunning || Boolean(ci);
+  const active = live || serverRunning || ciActive(ci);
   const tracking = !active && trackedProject;
   byId('project-led').textContent = project ?? (live ? task.title : trackedProject ?? 'ĐANG CHỜ DỰ ÁN');
   byId('project-led-caption').textContent = tracking
     ? ocrSignalUnavailable ? 'ĐANG XEM · MẤT KẾT NỐI' : 'ĐANG XEM · CHƯA CÓ TÍN HIỆU'
-    : ci ? 'GITHUB ACTIONS' : active ? 'DỰ ÁN ĐANG CHẠY' : 'VĂN PHÒNG ĐIỀU HÀNH';
+    : ci ? 'GITHUB · ' + ciLabel(ci).toLocaleUpperCase('vi') : active ? 'DỰ ÁN ĐANG CHẠY' : 'VĂN PHÒNG ĐIỀU HÀNH';
   if (tracking) task = null;
   byId('project-led').setAttribute('data-active', active);
   const mode = live ? screenModes[task.phase] : null;
@@ -248,8 +255,12 @@ function paintWorkScreen(task, live = false) {
   byId('work-screen').setAttribute('data-mode', live ? task.phase : 'idle');
   byId('screen-task').textContent = ci?.name ?? task?.title ?? '';
   byId('screen-source').textContent = live ? 'TÍN HIỆU WORK' : serverRunning || ci ? 'GITHUB' : 'TỔNG QUAN';
-  byId('screen-heading').textContent = ci ? (ci.status === 'in_progress' ? 'Workflow đang chạy' : 'Workflow đang chờ') : serverRunning && !live ? 'Đang đọc commit GitHub' : mode?.title ?? (task ? outcome[task.status] : 'Đang chờ tín hiệu Work');
-  byId('screen-note').textContent = ci ? 'Trạng thái từ GitHub Actions' : mode
+  byId('screen-run-link').hidden = !ci;
+  if (ci) byId('screen-run-link').setAttribute('href', ci.url);
+  byId('work-screen').setAttribute('data-ci-result', ci?.conclusion ?? '');
+  byId('screen-heading').textContent = ci ? ciLabel(ci) : serverRunning && !live ? 'Đang đọc commit GitHub' : mode?.title ?? (task ? outcome[task.status] : 'Đang chờ tín hiệu Work');
+  byId('screen-note').textContent = ci ? (ci.source === 'render' ? 'GitHub Actions qua Render' : 'GitHub Actions trực tiếp') +
+    (ci.updated ? ' · ' + new Date(ci.updated).toLocaleString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh'}) : '') : mode
     ? task.agent + ' · ' + phaseLabels[task.phase] + ' · Tín hiệu từ phiên thực thi'
     : task ? task.agent + ' · ' + phaseLabels[task.phase] : 'Chế độ hiển thị sẽ đổi theo giai đoạn của tác vụ.';
   byId('screen-lines').replaceChildren(...(mode?.lines ?? []).map(text => {
@@ -267,6 +278,7 @@ const wallTeams = {
 const wallFloorRoutes = {
   'planning:implementation': 'M835 640 C835 695 800 727 739 758 S647 801 580 805',
   'planning:verification': 'M835 640 C835 695 870 727 931 758 S1023 801 1090 805',
+  'verification:planning': 'M1090 805 C1023 801 992 789 931 758 S835 695 835 640',
   'implementation:verification': 'M580 805 Q700 830 835 832 T1090 805',
 };
 function wallRoute(from, to, parent) {
@@ -293,14 +305,19 @@ function paintWallFlow(tasks, now = Date.now(), connected = true) {
     transfers.set(task.previous + ':' + task.phase, [task.previous, task.phase]);
   }
   const liveRoutes = byId('wall-live-routes');
-  const signature = [...transfers.keys()].join('|');
+  const ci = !active.length && !trackedProject ? ciRun : null;
+  const signature = [...transfers.keys()].join('|') + (ci ? ':ci:' + ci.status : '');
   if (liveRoutes.flowSignature !== signature) {
     liveRoutes.flowSignature = signature;
     liveRoutes.replaceChildren();
     for (const [from,to] of transfers.values()) wallRoute(from,to,liveRoutes);
+    if (ci) {
+      wallRoute('verification','planning',liveRoutes);
+      liveRoutes.lastChild?.setAttribute('class', ciActive(ci) ? 'wall-ci-route' : 'wall-ci-route wall-ci-result');
+    }
   }
   const sampleRoutes = byId('wall-sample-routes');
-  const showSample = wallSample && active.length === 0;
+  const showSample = wallSample && active.length === 0 && !ciActive(ci);
   if (sampleRoutes.showSample !== showSample) {
     sampleRoutes.showSample = showSample;
     sampleRoutes.replaceChildren();
@@ -313,6 +330,11 @@ function paintWallFlow(tasks, now = Date.now(), connected = true) {
     const running = active.some(task => task.phase === phase);
     const receiving = [...transfers.values()].some(([,to]) => to === phase);
     const sending = [...transfers.values()].some(([from]) => from === phase);
+    if (ci && (phase === 'verification' || phase === 'planning')) {
+      byId('wall-team-' + phase).setAttribute('data-state', ciActive(ci) ? 'active' : 'sending');
+      byId('wall-' + phase).textContent = phase === 'verification' ? 'CI · ' + ciLabel(ci) : 'Nhận trạng thái CI';
+      continue;
+    }
     byId('wall-team-' + phase).setAttribute('data-state', receiving || running ? 'active' : sending ? 'sending' : 'idle');
     byId('wall-' + phase).textContent = receiving ? 'Nhận bàn giao · ' + team.activity
       : running ? team.activity : sending ? 'Vừa bàn giao' : 'Chờ tín hiệu';
@@ -320,6 +342,7 @@ function paintWallFlow(tasks, now = Date.now(), connected = true) {
   const message = transfers.size ? [...transfers.values()].map(([from,to]) => wallTeams[from].name + ' → ' + wallTeams[to].name).join(' · ')
     : active.length ? 'Có bộ phận đang thực thi · Chưa có bàn giao mới'
     : showSample ? 'Minh họa: Điều phối → Công nghệ → Kiểm soát'
+    : ci ? 'GitHub Actions → Văn phòng · ' + ciLabel(ci)
     : connected ? 'Chưa có tác vụ Work đang chạy' : 'Mất kết nối hoặc đang chờ đọc tín hiệu Work';
   const status = byId('wall-flow-status');
   if (status.textContent !== message) status.textContent = message;
@@ -592,9 +615,9 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) refr
 async function refreshCi() {
   try {
     const {runs, source} = await api('ci');
-    ciRun = runs.find(run => run.status === 'in_progress') ??
-      runs.find(run => ['queued','requested','waiting','pending'].includes(run.status)) ?? null;
-    const current = ciRun ?? runs[0];
+    const latest = [...runs].sort((a,b) => Date.parse(b.updated) - Date.parse(a.updated));
+    const current = latest.find(run => run.status === 'in_progress') ?? latest.find(ciActive) ?? latest[0];
+    ciRun = current ? { ...current, source } : null;
     const display = byId('ci-status');
     display.textContent = source === 'render' ? 'GitHub Actions qua Render · ' : 'GitHub Actions trực tiếp · ';
     if (current) {
@@ -603,9 +626,7 @@ async function refreshCi() {
       link.target = '_blank';
       link.rel = 'noopener noreferrer';
       link.textContent = current.name;
-      const state = {in_progress:'Đang chạy',queued:'Đang xếp hàng',waiting:'Đang chờ',completed:'Đã kết thúc'};
-      const outcome = {success:'Thành công',failure:'Thất bại',cancelled:'Đã hủy',timed_out:'Hết thời gian'};
-      display.append(link, ' · ' + (outcome[current.conclusion] ?? state[current.status] ?? current.status));
+      display.append(link, ' · ' + ciLabel(current));
     } else {
       display.append('Chưa có lượt chạy.');
     }
@@ -614,6 +635,7 @@ async function refreshCi() {
     byId('ci-status').textContent = 'Tạm thời không đọc được GitHub Actions.';
   }
   paintWorkScreen(screenTask, screenLive);
+  paintWallFlow(wallTasks, Date.now(), wallConnected);
 }
 refreshCi();
 setInterval(() => { if (!document.hidden) refreshCi(); }, 60_000);
