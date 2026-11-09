@@ -20,13 +20,14 @@
 <button id="rotate-left" type="button" aria-label="Xoay trái 90 độ">↶</button><button id="rotate-right" type="button" aria-label="Xoay phải 90 độ">↷</button>
 <button id="mirror-view" type="button" aria-pressed="false">Lật ngang</button><button id="reset-view" type="button">Đặt lại góc nhìn</button>
 </div>
+<p class="gesture-hint" id="gesture-hint"><span class="mouse-hint">Kéo để di chuyển · Cuộn để thu phóng · Kéo chuột phải hoặc Shift + kéo để xoay</span><span class="touch-hint">Kéo một ngón để di chuyển · Chụm hoặc xoay hai ngón để đổi góc nhìn</span></p>
 <div class="trading-stage">
 <div class="project-ticker"><span id="project-led-caption">DỰ ÁN ĐANG CHẠY</span><strong id="project-led">ĐANG CHỜ DỰ ÁN</strong></div>
 <section id="work-screen" class="work-screen" aria-labelledby="screen-title">
 <div class="screen-top"><h3 id="screen-title">Màn hình điều hành</h3><span id="screen-source">WORK LIVE</span></div>
 <div class="screen-body"><strong id="screen-heading">Đang chờ tín hiệu Work</strong><p id="screen-note">Chế độ hiển thị sẽ đổi theo giai đoạn của tác vụ.</p><ol id="screen-lines" aria-hidden="true"></ol></div>
 </section>
-<svg id="scene" viewBox="0 0 900 450" aria-label="Sàn điều hành với giám đốc phía trước, nhân viên phía sau, phòng họp mười ghế và cây xanh"><defs>
+<svg id="scene" aria-describedby="gesture-hint" viewBox="0 0 900 450" aria-label="Sàn điều hành với giám đốc phía trước, nhân viên phía sau, phòng họp mười ghế và cây xanh"><defs>
 <linearGradient id="silver" x2="1" y2="1"><stop stop-color="#fff"/><stop offset=".57" stop-color="#a9cbdc"/><stop offset="1" stop-color="#577e9b"/></linearGradient>
 <radialGradient id="light"><stop stop-color="#174664"/><stop offset="1" stop-color="#081422"/></radialGradient>
 <pattern id="grid" width="26" height="26" patternUnits="userSpaceOnUse"><path d="M26 0H0V26" fill="none" stroke="#4387a5" stroke-opacity=".18"/></pattern>

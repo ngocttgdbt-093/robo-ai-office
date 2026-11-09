@@ -12,7 +12,7 @@ main{max-width:1560px;margin:auto;padding:clamp(14px,3vw,40px)}.intro{margin-bot
 @keyframes flow-travel{to{stroke-dashoffset:-40}}
 @media(prefers-reduced-motion:reduce){.route-pulse{animation:none}}
 .camera-controls{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:0 13px 10px}.camera-controls output{min-width:3.1rem;text-align:center;color:var(--muted);font-size:.8rem}
-.camera-controls button{min-width:42px}.camera-controls button:disabled{cursor:default}.map svg[data-pannable=true]{touch-action:none;cursor:grab}.map svg[data-pannable=true]:active{cursor:grabbing}
+.camera-controls button{min-width:42px}.camera-controls button:disabled{cursor:default}#scene{touch-action:none;cursor:grab}#scene:active,#scene:active .room{cursor:grabbing}
 .work-card{margin:14px 0 0;padding:13px;border:1px solid #376d63;border-radius:14px;background:#0d292a}.work-card .list{max-height:170px}.work-card p{font-size:.79rem}.work-card li p{margin:3px 0 0}
 #live-flows{pointer-events:none}.flow.work{color:#59f5af;opacity:1;filter:drop-shadow(0 0 3px #59f5af)}.flow.work .route-line{stroke-width:3}
 .room .agent-tag{fill:#79ffbf;font-size:15px;stroke-width:4px}.work-card .worker-badge,.worker-badge{color:#79ffbf;font-size:.77rem;overflow-wrap:anywhere}.worker-badge:empty{display:none}
@@ -30,3 +30,5 @@ main{max-width:1560px;margin:auto;padding:clamp(14px,3vw,40px)}.intro{margin-bot
 .trading-stage .work-screen{width:min(92%,620px);margin:0 auto;border-radius:8px 8px 2px 2px;border-color:#558393;box-shadow:0 5px 18px #2d9dbc40}
 .trading-stage .screen-top{background:#143546}.trading-stage .screen-body{min-height:64px}.trading-stage svg{border-top:0}
 .director-zone .tile{stroke:#edb777;stroke-width:2}.meeting-zone .tile{stroke:#a6b7ec}.meeting-glass{stroke:#9dc8e0;stroke-width:1}#plants{pointer-events:none}
+
+.gesture-hint{padding:0 13px 8px;margin:0;color:var(--muted);font-size:.72rem}.touch-hint{display:none}@media(pointer:coarse){.mouse-hint{display:none}.touch-hint{display:inline}}

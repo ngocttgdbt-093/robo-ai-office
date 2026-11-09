@@ -88,3 +88,43 @@ test('trading floor has a front director desk, ten meeting seats and greenery', 
   runInNewContext("paintWorkScreen({phase:'implementation',status:'running',agent:'Codex',title:'Task',project:'ROBO AI OFFICE'}, true)", context);
   assert.equal(get('project-led').textContent, 'ROBO AI OFFICE');
 });
+
+test('floor handles wheel zoom, left drag, right drag and two-finger gestures', () => {
+  const elements = new Map();
+  const handlers = new Map();
+  const get = id => {
+    if (!elements.has(id)) elements.set(id, new Element());
+    return elements.get(id);
+  };
+  Object.assign(get('scene'), {
+    addEventListener: (name, fn) => handlers.set(name, fn),
+    getBoundingClientRect: () => ({left:0,top:0,width:900}),
+    setPointerCapture() {},
+  });
+  const source = readFileSync(new URL('../office.js', import.meta.url), 'utf8');
+  const gestures = source.split('projects();')[1].split('let workRequest')[0];
+  runInNewContext(source.split('const formatter')[0] + gestures, {
+    document: { getElementById: get, createElement: () => new Element(), createElementNS: () => new Element() },
+    setTimeout,
+  });
+  const event = (name, args) => handlers.get(name)({ preventDefault() {}, ...args });
+  const camera = () => get('camera').attributes.transform;
+  event('wheel', { deltaY:-120, deltaMode:0, clientX:450, clientY:225 });
+  assert.ok(parseInt(get('view-level').textContent) > 100);
+  get('reset-view').onclick();
+  const pointer = (name,id,x,y,button=0,type='mouse') => event('pointer'+name,{pointerId:id,clientX:x,clientY:y,button,pointerType:type,isPrimary:id===1});
+  pointer('down',1,450,225);
+  pointer('move',1,475,245);
+  pointer('up',1,475,245);
+  assert.match(camera(), /^translate\(475 245\)/);
+  pointer('down',1,450,225,2);
+  pointer('move',1,515,225,2);
+  pointer('up',1,515,225,2);
+  assert.doesNotMatch(camera(), /rotate\(0\)/);
+  get('reset-view').onclick();
+  pointer('down',1,400,225,0,'touch');
+  pointer('down',2,500,225,0,'touch');
+  pointer('move',2,540,265,0,'touch');
+  assert.ok(parseInt(get('view-level').textContent) > 100);
+  assert.doesNotMatch(camera(), /rotate\(0\)/);
+});

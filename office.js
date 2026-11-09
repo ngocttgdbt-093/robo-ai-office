@@ -179,15 +179,17 @@ let mirrored = false;
 let panX = 0;
 let panY = 0;
 function paintCamera() {
-  const fit = angle % 180 === 0 ? 1 : 0.54;
+  const radians = angle * Math.PI / 180;
+  const width = 820 * Math.abs(Math.cos(radians)) + 400 * Math.abs(Math.sin(radians));
+  const height = 820 * Math.abs(Math.sin(radians)) + 400 * Math.abs(Math.cos(radians));
+  const fit = Math.min(1, 900 / width, 445 / height);
   const scale = zoom / 100 * fit;
   const direction = mirrored ? -1 : 1;
   byId('camera').setAttribute('transform', `translate(${450 + panX} ${225 + panY}) rotate(${angle}) scale(${scale * direction} ${scale}) translate(-450 -225)`);
   for (const {node,x,y} of labels) {
     node.setAttribute('transform', `translate(${x} ${y}) scale(${direction} 1) rotate(${-angle}) translate(${-x} ${-y})`);
   }
-  byId('scene').setAttribute('data-pannable', zoom > 100);
-  byId('view-level').textContent = zoom + '%';
+  byId('view-level').textContent = Math.round(zoom) + '%';
   byId('zoom-in').disabled = zoom >= 180;
   byId('zoom-out').disabled = zoom <= 60;
   byId('mirror-view').setAttribute('aria-pressed', mirrored);
@@ -332,32 +334,89 @@ setInterval(() => { if (running && !submitting && !document.hidden) history(); }
 history();
 projects();
 
-let drag = null;
-let suppressClick = false;
 const scene = byId('scene');
+const pointers = new Map();
+const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+let gesture = null;
+let suppressClick = false;
+
+function resetGesture(rotate = gesture?.rotate ?? false, moved = false) {
+  const [first, second] = pointers.values();
+  gesture = first ? {
+    rotate, moved, first: { ...first }, second: second && { ...second },
+    zoom, angle, panX, panY,
+  } : null;
+}
+function moveCamera(x, y) {
+  panX = clamp(x, -410, 410);
+  panY = clamp(y, -300, 300);
+}
+function zoomAt(next, clientX, clientY) {
+  const rect = scene.getBoundingClientRect();
+  const ratio = 900 / rect.width;
+  const x = (clientX - rect.left) * ratio - 450;
+  const y = (clientY - rect.top) * ratio - 225;
+  next = clamp(next, 60, 180);
+  const change = next / zoom;
+  moveCamera(x - (x - panX) * change, y - (y - panY) * change);
+  zoom = next;
+  paintCamera();
+}
+scene.addEventListener('wheel', event => {
+  event.preventDefault();
+  const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? 450 : 1;
+  zoomAt(zoom * Math.exp(-clamp(event.deltaY * unit, -240, 240) / 450), event.clientX, event.clientY);
+}, { passive:false });
+scene.addEventListener('contextmenu', event => event.preventDefault());
 scene.addEventListener('pointerdown', event => {
-  if (zoom <= 100 || !event.isPrimary || event.button !== 0) return;
-  drag = { id:event.pointerId, x:event.clientX, y:event.clientY, panX, panY, moved:false };
+  if (pointers.size >= 2 || ![0,2].includes(event.button)) return;
+  if (pointers.size && event.pointerType !== 'touch') return;
+  pointers.set(event.pointerId, {x:event.clientX, y:event.clientY});
+  if (pointers.size === 2) {
+    for (const id of pointers.keys()) scene.setPointerCapture(id);
+    resetGesture(false, true);
+  } else {
+    resetGesture(event.button === 2 || event.shiftKey);
+  }
 });
 scene.addEventListener('pointermove', event => {
-  if (!drag || drag.id !== event.pointerId) return;
-  const dx = event.clientX - drag.x, dy = event.clientY - drag.y;
-  if (!drag.moved && Math.hypot(dx,dy) < 6) return;
-  if (!drag.moved) scene.setPointerCapture(event.pointerId);
-  drag.moved = true;
+  if (!gesture || !pointers.has(event.pointerId)) return;
+  pointers.set(event.pointerId, {x:event.clientX, y:event.clientY});
+  const [first, second] = pointers.values();
+  const dx = first.x - gesture.first.x, dy = first.y - gesture.first.y;
+  if (!gesture.moved && Math.hypot(dx,dy) < 5) return;
+  if (!gesture.moved) scene.setPointerCapture(event.pointerId);
+  gesture.moved = true;
   const ratio = 900 / scene.getBoundingClientRect().width;
-  panX = Math.max(-410, Math.min(410, drag.panX + dx * ratio));
-  panY = Math.max(-300, Math.min(300, drag.panY + dy * ratio));
+  if (second) {
+    const a = [gesture.second.x - gesture.first.x, gesture.second.y - gesture.first.y];
+    const b = [second.x - first.x, second.y - first.y];
+    zoom = clamp(gesture.zoom * Math.hypot(...b) / Math.max(1, Math.hypot(...a)), 60, 180);
+    angle = gesture.angle + (Math.atan2(b[1],b[0]) - Math.atan2(a[1],a[0])) * 180 / Math.PI;
+    moveCamera(gesture.panX + (dx + second.x - gesture.second.x) * ratio / 2,
+      gesture.panY + (dy + second.y - gesture.second.y) * ratio / 2);
+  } else if (gesture.rotate) {
+    angle = gesture.angle + dx * 0.65;
+  } else {
+    moveCamera(gesture.panX + dx * ratio, gesture.panY + dy * ratio);
+  }
   paintCamera();
 });
-function endDrag(event) {
-  if (!drag || drag.id !== event.pointerId) return;
-  suppressClick = event.type === 'pointerup' && drag.moved;
-  drag = null;
-  if (suppressClick) setTimeout(() => { suppressClick = false; }, 0);
+function endGesture(event) {
+  if (!pointers.delete(event.pointerId)) return;
+  const moved = Boolean(gesture?.moved);
+  resetGesture(false, moved);
+  if (moved && event.type === 'pointerup') {
+    suppressClick = true;
+    setTimeout(() => { suppressClick = false; }, 0);
+  }
 }
-scene.addEventListener('pointerup', endDrag);
-scene.addEventListener('pointercancel', endDrag);
+scene.addEventListener('pointerup', endGesture);
+scene.addEventListener('pointercancel', endGesture);
+scene.addEventListener('lostpointercapture', endGesture);
+scene.addEventListener('pointerleave', event => {
+  if (!gesture?.moved) endGesture(event);
+});
 scene.addEventListener('click', event => {
   if (suppressClick) event.stopPropagation();
 }, true);
