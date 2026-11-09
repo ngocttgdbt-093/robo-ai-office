@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - 'setup/**'
+      - 'feat/**'
   pull_request:
   workflow_dispatch:
 
@@ -26,3 +27,12 @@ jobs:
           grep -q 'Never merge' AGENTS.md
           grep -q 'obra/superpowers' AGENTS.md
           echo "Foundation validation passed"
+      - name: Run Node.js tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -d tests ]; then
+            node --test
+          else
+            echo "No tests directory yet; skipping Node tests"
+          fi
