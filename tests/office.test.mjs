@@ -9,7 +9,8 @@ class Element {
   classes = new Set();
   classList = { toggle: (name, on) => on ? this.classes.add(name) : this.classes.delete(name) };
   setAttribute(name, value) { this.attributes[name] = value; }
-  append(child) { this.children.push(child); }
+  append(...children) { this.children.push(...children); }
+  replaceChildren(...children) { this.children = children; }
 }
 
 test('all nine robots appear immediately and route controls highlight without closing any zone', () => {
@@ -50,4 +51,22 @@ test('camera zooms, rotates, mirrors and resets', () => {
   assert.match(get('camera').attributes.transform, /rotate\(90\) scale\(-[0-9.]+ [0-9.]+\)/);
   get('reset-view').onclick();
   assert.match(get('camera').attributes.transform, /rotate\(0\) scale\(1 1\)/);
+});
+
+test('central screen switches between coding and testing from real phase status', () => {
+  const elements = new Map();
+  const get = id => {
+    if (!elements.has(id)) elements.set(id, new Element());
+    return elements.get(id);
+  };
+  const source = readFileSync(new URL('../office.js', import.meta.url), 'utf8').split('const formatter')[0];
+  const context = { document: { getElementById: get, createElement: () => new Element(), createElementNS: () => new Element() } };
+  runInNewContext(source, context);
+  runInNewContext("paintWorkScreen({phase:'implementation',status:'running',agent:'Codex'}, true)", context);
+  assert.equal(get('work-screen').attributes['data-mode'], 'implementation');
+  runInNewContext("paintWorkScreen({phase:'verification',status:'running',agent:'Codex'}, true)", context);
+  assert.equal(get('work-screen').attributes['data-mode'], 'verification');
+  assert.doesNotMatch(get('screen-heading').textContent, /Hoàn tất/);
+  runInNewContext("paintWorkScreen({phase:'verification',status:'failed',agent:'Codex'}, false)", context);
+  assert.match(get('screen-heading').textContent, /Gặp lỗi/);
 });

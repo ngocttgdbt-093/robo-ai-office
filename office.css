@@ -16,3 +16,9 @@ main{max-width:1560px;margin:auto;padding:clamp(14px,3vw,40px)}.intro{margin-bot
 .work-card{margin:14px 0 0;padding:13px;border:1px solid #376d63;border-radius:14px;background:#0d292a}.work-card .list{max-height:170px}.work-card p{font-size:.79rem}.work-card li p{margin:3px 0 0}
 #live-flows{pointer-events:none}.flow.work{color:#59f5af;opacity:1;filter:drop-shadow(0 0 3px #59f5af)}.flow.work .route-line{stroke-width:3}
 .room .agent-tag{fill:#79ffbf;font-size:15px;stroke-width:4px}.work-card .worker-badge,.worker-badge{color:#79ffbf;font-size:.77rem;overflow-wrap:anywhere}.worker-badge:empty{display:none}
+.work-screen{margin:0 13px 10px;border:1px solid #355b6b;border-radius:11px;background:#081723;overflow:hidden}
+.screen-top{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 11px;background:#122b3b}.screen-top h3{font-size:.86rem}.screen-top span{font-size:.62rem;color:var(--cyan);letter-spacing:.12em}
+.screen-body{padding:9px 11px}.screen-body p{margin:3px 0;font-size:.76rem}.screen-body ol{list-style:none;margin:7px 0 0;padding:0;color:#86e9c2;font: .74rem/1.55 ui-monospace,Consolas,monospace}.screen-body ol:empty{display:none}
+.work-screen[data-mode=implementation] .screen-body li:last-child::after,.work-screen[data-mode=verification] .screen-body li:last-child::after{content:' ▊';animation:screen-cursor 1.1s steps(2,start) infinite}
+@keyframes screen-cursor{to{visibility:hidden}}
+@media(prefers-reduced-motion:reduce){.work-screen .screen-body li:last-child::after{animation:none!important}}

@@ -170,6 +170,26 @@ byId('mirror-view').onclick = () => changeView(zoom, angle, !mirrored);
 byId('reset-view').onclick = () => changeView(100, 0, false);
 paintCamera();
 
+const screenModes = {
+  planning: { title:'Đang lên phương án', lines:['• Đọc yêu cầu', '• Xác định phần cần thay đổi'] },
+  implementation: { title:'Đang lập trình', lines:['01  // mở phần cần chỉnh', '02  function updateFeature() {', '03    // mô phỏng thao tác chỉnh sửa', '04  }'] },
+  verification: { title:'Đang kiểm thử', lines:['▶  Chuẩn bị kiểm tra', '…  Đối chiếu hành vi và kết quả'] },
+};
+function paintWorkScreen(task, live = false) {
+  const mode = live ? screenModes[task.phase] : null;
+  const outcome = {completed:'Hoàn tất', failed:'Gặp lỗi', running:'Chưa có cập nhật mới'};
+  byId('work-screen').setAttribute('data-mode', live ? task.phase : 'idle');
+  byId('screen-heading').textContent = mode?.title ?? (task ? outcome[task.status] : 'Đang chờ tín hiệu Work');
+  byId('screen-note').textContent = mode
+    ? task.agent + ' · ' + phaseLabels[task.phase] + ' · Minh họa theo giai đoạn thật'
+    : task ? task.agent + ' · ' + phaseLabels[task.phase] : 'Chế độ hiển thị sẽ đổi theo giai đoạn của tác vụ.';
+  byId('screen-lines').replaceChildren(...(mode?.lines ?? []).map(text => {
+    const row = document.createElement('li');
+    row.textContent = text;
+    return row;
+  }));
+}
+
 const formatter = new Intl.DateTimeFormat('vi-VN',{ dateStyle:'short', timeStyle:'short', timeZone:'Asia/Ho_Chi_Minh' });
 const date = iso => formatter.format(new Date(iso));
 async function api(path, options) {
@@ -329,6 +349,8 @@ async function refreshWork() {
       row.append(title,note,badge);
       return row;
     }));
+    const recent = tasks.find(task => task.status === 'running' && now - Date.parse(task.updated) < 10 * 60_000);
+    paintWorkScreen(recent ?? tasks[0], Boolean(recent));
     byId('work-status').textContent = tasks.length ? 'Cập nhật từ các phiên Work đã kết nối.' : 'Chưa có tác vụ Work được kết nối.';
     paintRooms();
   } catch {
@@ -336,6 +358,7 @@ async function refreshWork() {
     activeWork.clear();
     workByZone = new Map();
     byId('live-flows').replaceChildren();
+    paintWorkScreen();
     byId('work-status').textContent = 'Tạm mất kết nối. Lịch sử bên dưới có thể đã cũ.';
     paintRooms();
   }
