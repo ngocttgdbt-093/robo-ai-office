@@ -2,6 +2,7 @@ import http from 'node:http';
 import { timingSafeEqual } from 'node:crypto';
 import { createStatusStore, normalizeEvent } from './status.js';
 import { createGitHubStatusCache } from './github-status.js';
+import { officeHtml } from './office.js';
 export function createBridge({ token, maxBytes = 16384 } = {}) {
   if (typeof token !== 'string' || token.length < 24) throw new Error('BRIDGE_TOKEN must have at least 24 characters');
   const store = createStatusStore();
@@ -13,6 +14,10 @@ export function createBridge({ token, maxBytes = 16384 } = {}) {
   return http.createServer(async (req, res) => {
     const respond = (code, data) => { res.writeHead(code, {'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff'});res.end(JSON.stringify(data)); };
     const pathname = new URL(req.url, 'http://localhost').pathname;
+    if (pathname === '/office' && req.method === 'GET') {
+      res.writeHead(200, {'content-type':'text/html; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff','content-security-policy':"default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'"});
+      return res.end(officeHtml);
+    }
     if (pathname === '/health' && req.method === 'GET') return respond(200, {ok:true, service:'robo-status-bridge'});
     if (pathname === '/api/github-status' && req.method === 'GET') {
       try { return respond(200, await githubStatus()); }
