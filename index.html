@@ -42,8 +42,13 @@
 <section class="console panel" aria-labelledby="room-title">
 <p class="eyebrow">02 / PHÒNG ĐIỀU HÀNH</p><h2 id="room-title">Toàn cảnh văn phòng</h2><p id="room-description">Chọn một khu để xem chức năng và làm nổi bật các tuyến liên quan.</p><p id="route-description" class="caption"></p><p id="zone-work" class="worker-badge"></p>
 <div class="work-card"><h3>Robo đang làm gì?</h3><p id="work-status">Đang tải trạng thái Work…</p><ol id="work-list" class="list"></ol></div>
-<div class="status-card"><p class="eyebrow">AGENT RUNTIME</p><p id="runtime-status" role="status">Đang kết nối…</p>
-<form id="run-form"><label for="repo">Dự án kiểm tra commit</label><div class="form-row"><select id="repo" name="repo"><option>robo-ai-office</option><option>pti093</option><option>pti</option><option>pti093db</option></select><button id="run" type="submit" disabled>Chạy Agent</button></div></form><p class="caption">Agent đọc tối đa 5 commit gần nhất và lưu kết quả chạy.</p></div>
+<section class="work-project" aria-labelledby="ocr-project-title">
+<p class="eyebrow">DỰ ÁN CHATGPT WORK</p><h3 id="ocr-project-title">03 · OCR giấy tờ TBTN/YCBT</h3>
+<p id="ocr-signal" class="caption">Đang kiểm tra tín hiệu Work…</p>
+<div class="form-row"><a class="project-open" href="https://chatgpt.com/g/g-p-6ace40340e308191a6d5e38e8ece1437-03-ocr-giay-to-tbtn-ycbt/project" target="_blank" rel="noopener noreferrer">Mở dự án OCR</a><button id="track-ocr" type="button" aria-pressed="false">Xem trên LED</button></div>
+</section>
+<div class="status-card"><p class="eyebrow">AGENT RUNTIME · GITHUB</p><p id="runtime-status" role="status">Đang kết nối…</p>
+<form id="run-form"><label for="repo">Dự án kiểm tra commit</label><div class="form-row"><select id="repo" name="repo"><option>robo-ai-office</option><option>pti093</option><option>pti</option><option>pti093db</option></select><button id="run" type="submit" disabled>Kiểm tra commit</button></div></form><p class="caption">Agent đọc tối đa 5 commit gần nhất và lưu kết quả chạy.</p></div>
 <div class="history-head"><h3>Lịch sử Agent</h3><button type="button" id="refresh-runs">Làm mới</button></div><ol id="history" class="list"></ol>
 </section></div>
 <section class="activity panel"><div class="bar"><div><p class="eyebrow">03 / NGUỒN DỮ LIỆU</p><h2>Hoạt động GitHub</h2></div><button type="button" id="refresh">Cập nhật</button></div><p id="github-status" role="status">Đang tải hoạt động dự án…</p><div id="projects" class="projects"></div></section>

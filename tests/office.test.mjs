@@ -128,3 +128,21 @@ test('floor handles wheel zoom, left drag, right drag and two-finger gestures', 
   assert.ok(parseInt(get('view-level').textContent) > 100);
   assert.doesNotMatch(camera(), /rotate\(0\)/);
 });
+
+test('tracking OCR shows a clearly inactive LED until a live event arrives', () => {
+  const elements = new Map();
+  const get = id => {
+    if (!elements.has(id)) elements.set(id, new Element());
+    return elements.get(id);
+  };
+  const source = readFileSync(new URL('../office.js', import.meta.url), 'utf8').split('const formatter')[0];
+  const context = { document: { getElementById: get, createElement: () => new Element(), createElementNS: () => new Element() } };
+  runInNewContext(source, context);
+  get('track-ocr').onclick();
+  assert.match(get('project-led').textContent, /Dự án 03/);
+  assert.match(get('project-led-caption').textContent, /CHƯA CÓ TÍN HIỆU/);
+  assert.equal(get('project-led').attributes['data-active'], false);
+  runInNewContext("paintWorkScreen({phase:'implementation',status:'running',agent:'Codex',project:ocrProject}, true)", context);
+  assert.equal(get('project-led').attributes['data-active'], true);
+  assert.equal(get('project-led-caption').textContent, 'DỰ ÁN ĐANG CHẠY');
+});

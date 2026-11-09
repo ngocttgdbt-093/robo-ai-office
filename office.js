@@ -209,6 +209,15 @@ byId('mirror-view').onclick = () => changeView(zoom, angle, !mirrored);
 byId('reset-view').onclick = () => changeView(100, 0, false);
 paintCamera();
 
+const ocrProject = 'Dự án 03 — OCR giấy tờ TBTN/YCBT';
+let trackedProject = null;
+let ocrSignalUnavailable = false;
+byId('track-ocr').onclick = () => {
+  trackedProject = trackedProject ? null : ocrProject;
+  byId('track-ocr').setAttribute('aria-pressed', Boolean(trackedProject));
+  paintWorkScreen(screenTask, screenLive);
+};
+
 const screenModes = {
   planning: { title:'Đang lên phương án', lines:['• Đọc yêu cầu', '• Xác định phần cần thay đổi'] },
   implementation: { title:'Đang lập trình', lines:['01  // mở phần cần chỉnh', '02  function updateFeature() {', '03    // mô phỏng thao tác chỉnh sửa', '04  }'] },
@@ -217,8 +226,12 @@ const screenModes = {
 function paintWorkScreen(task, live = false) {
   const project = live ? task.project : serverRunning ? serverRepo : null;
   const active = live || serverRunning;
-  byId('project-led').textContent = project ?? (live ? task.title : 'ĐANG CHỜ DỰ ÁN');
-  byId('project-led-caption').textContent = live && !project ? 'TÁC VỤ ĐANG CHẠY' : 'DỰ ÁN ĐANG CHẠY';
+  const tracking = !active && trackedProject;
+  byId('project-led').textContent = project ?? (live ? task.title : trackedProject ?? 'ĐANG CHỜ DỰ ÁN');
+  byId('project-led-caption').textContent = tracking
+    ? ocrSignalUnavailable ? 'ĐANG XEM · MẤT KẾT NỐI' : 'ĐANG XEM · CHƯA CÓ TÍN HIỆU'
+    : live && !project ? 'TÁC VỤ ĐANG CHẠY' : 'DỰ ÁN ĐANG CHẠY';
+  if (tracking) task = null;
   byId('project-led').setAttribute('data-active', active);
   const mode = live ? screenModes[task.phase] : null;
   const outcome = {completed:'Hoàn tất', failed:'Gặp lỗi', running:'Chưa có cập nhật mới'};
@@ -452,7 +465,11 @@ async function refreshWork() {
       row.append(title,note,badge);
       return row;
     }));
-    const recent = tasks.find(task => task.status === 'running' && now - Date.parse(task.updated) < 10 * 60_000);
+    const isLive = task => task.status === 'running' && now - Date.parse(task.updated) < 10 * 60_000;
+    const ocrRunning = tasks.some(task => task.project === ocrProject && isLive(task));
+    ocrSignalUnavailable = false;
+    byId('ocr-signal').textContent = ocrRunning ? 'Đã nhận tín hiệu đang chạy từ Work.' : 'Chưa có tín hiệu đang chạy từ phiên Work của dự án.';
+    const recent = tasks.find(isLive);
     screenTask = recent ?? tasks[0];
     screenLive = Boolean(recent);
     paintWorkScreen(screenTask, screenLive);
@@ -465,6 +482,8 @@ async function refreshWork() {
     byId('live-flows').replaceChildren();
     screenTask = null;
     screenLive = false;
+    ocrSignalUnavailable = true;
+    byId('ocr-signal').textContent = 'Tạm thời không đọc được tín hiệu Work.';
     paintWorkScreen();
     byId('work-status').textContent = 'Tạm mất kết nối. Lịch sử bên dưới có thể đã cũ.';
     paintRooms();
