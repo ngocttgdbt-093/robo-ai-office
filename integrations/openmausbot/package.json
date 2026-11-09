@@ -1,0 +1,1 @@
+{"name":"robo-office-status-bridge","private":true,"version":"0.1.0","type":"module","scripts":{"test":"node --test","start":"node src/server.js"},"engines":{"node":">=20"}}
