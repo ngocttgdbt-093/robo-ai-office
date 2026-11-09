@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: robo-office-status-bridge-pilot
+    runtime: node
+    plan: free
+    region: singapore
+    repo: https://github.com/ngocttgdbt-093/robo-ai-office
+    branch: feature/openmausbot-status-bridge
+    rootDir: integrations/openmausbot
+    buildCommand: npm install --ignore-scripts
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeployTrigger: off
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: RENDER
+        value: "true"
+      - key: BRIDGE_TOKEN
+        generateValue: true
