@@ -41,7 +41,7 @@ for (const offset of [101, 212]) {
   face(floor, [[offset,-5],[offset+3,-5],[offset+3,322],[offset,322]], '#5b9db361');
   face(floor, [[-5,offset],[327,offset],[327,offset+3],[-5,offset+3]], '#5b9db361');
 }
-for (const [x,y] of [[-5,40],[47,-7],[101,319],[3,321],[323,213],[324,318]]) {
+for (const [x,y] of [[-5,40],[47,-7],[126,330],[3,321],[335,194],[337,295]]) {
   const plants = byId('plants');
   const plant = svg('g',{class:'planter'},plants);
   block(plant,x-7,y-7,14,14,0,12,['#547167','#324c49','#283d3c']);
@@ -179,7 +179,7 @@ let mirrored = false;
 let panX = 0;
 let panY = 0;
 function paintCamera() {
-  const fit = angle % 180 === 0 ? 1 : 0.63;
+  const fit = angle % 180 === 0 ? 1 : 0.54;
   const scale = zoom / 100 * fit;
   const direction = mirrored ? -1 : 1;
   byId('camera').setAttribute('transform', `translate(${450 + panX} ${225 + panY}) rotate(${angle}) scale(${scale * direction} ${scale}) translate(-450 -225)`);
