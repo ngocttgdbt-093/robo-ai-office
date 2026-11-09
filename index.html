@@ -11,19 +11,22 @@
 <body>
 <header class="top"><div class="identity"><span class="mark" aria-hidden="true">◇</span><div><strong>ROBO<span> AI</span> OFFICE</strong><small>TRUNG TÂM ĐIỀU HÀNH 3D</small></div></div><span class="version">MÔI TRƯỜNG KIỂM THỬ</span></header>
 <main>
-<section class="intro"><p class="eyebrow">FUTURISTIC COMMAND CENTER</p><h1>Văn phòng điều hành AI</h1><p>Khám phá chín khu vực, theo dõi dự án và giao việc cho Agent.</p></section>
+<section class="intro"><p class="eyebrow">FUTURISTIC COMMAND CENTER</p><h1>Văn phòng điều hành AI</h1><p>Chín khu làm việc mở, cùng một không gian điều hành.</p></section>
 <div class="workspace">
 <section class="map panel" aria-labelledby="map-title">
-<div class="bar"><div><p class="eyebrow">01 / KHÔNG GIAN LÀM VIỆC</p><h2 id="map-title">Sơ đồ văn phòng</h2></div><button id="overview" type="button">Toàn cảnh</button></div>
-<svg id="scene" viewBox="0 0 900 505" aria-label="Mặt bằng isometric của chín phòng"><defs>
+<div class="bar"><div><p class="eyebrow">01 / KHÔNG GIAN LÀM VIỆC</p><h2 id="map-title">Văn phòng mở</h2></div><div class="map-actions"><button id="toggle-flows" type="button" aria-controls="flows" aria-pressed="true">Mũi tên mô phỏng</button><button id="overview" type="button">Toàn cảnh</button></div></div>
+<svg id="scene" viewBox="0 0 900 505" aria-label="Mặt bằng mở với chín khu làm việc và các tuyến phối hợp mô phỏng"><defs>
 <linearGradient id="silver" x2="1" y2="1"><stop stop-color="#fff"/><stop offset=".57" stop-color="#a9cbdc"/><stop offset="1" stop-color="#577e9b"/></linearGradient>
 <radialGradient id="light"><stop stop-color="#174664"/><stop offset="1" stop-color="#081422"/></radialGradient>
 <pattern id="grid" width="26" height="26" patternUnits="userSpaceOnUse"><path d="M26 0H0V26" fill="none" stroke="#4387a5" stroke-opacity=".18"/></pattern>
-</defs><rect width="900" height="505" fill="url(#light)"/><rect width="900" height="505" fill="url(#grid)"/><g id="floor"></g><g id="rooms"></g></svg>
-<div class="room-nav" id="nav" aria-label="Danh sách phòng"></div>
+<marker id="command-arrow" viewBox="0 0 9 9" refX="8" refY="4.5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L9 4.5 0 9 2 4.5Z" fill="#7aeaff"/></marker>
+<marker id="activity-arrow" viewBox="0 0 9 9" refX="8" refY="4.5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L9 4.5 0 9 2 4.5Z" fill="#ffc779"/></marker>
+</defs><rect width="900" height="505" fill="url(#light)"/><rect width="900" height="505" fill="url(#grid)"/><g id="floor"></g><g id="rooms"></g><g id="flows" aria-hidden="true"></g></svg>
+<div class="flow-legend"><strong>Mô phỏng phối hợp</strong><span class="command-key">Luồng lệnh</span><span class="activity-key">Luồng hoạt động</span><span class="live-key">Agent đang chạy</span></div>
+<div class="room-nav" id="nav" aria-label="Danh sách khu làm việc"></div>
 </section>
 <section class="console panel" aria-labelledby="room-title">
-<p class="eyebrow">02 / PHÒNG ĐIỀU HÀNH</p><h2 id="room-title">Toàn cảnh văn phòng</h2><p id="room-description">Chọn một phòng để mở không gian và xem chức năng.</p>
+<p class="eyebrow">02 / PHÒNG ĐIỀU HÀNH</p><h2 id="room-title">Toàn cảnh văn phòng</h2><p id="room-description">Chọn một khu để xem chức năng và làm nổi bật các tuyến liên quan.</p><p id="route-description" class="caption"></p>
 <div class="status-card"><p class="eyebrow">AGENT RUNTIME</p><p id="runtime-status" role="status">Đang kết nối…</p>
 <form id="run-form"><label for="repo">Dự án kiểm tra commit</label><div class="form-row"><select id="repo" name="repo"><option>robo-ai-office</option><option>pti093</option><option>pti</option><option>pti093db</option></select><button id="run" type="submit" disabled>Chạy Agent</button></div></form><p class="caption">Agent đọc tối đa 5 commit gần nhất và lưu kết quả chạy.</p></div>
 <div class="history-head"><h3>Lịch sử Agent</h3><button type="button" id="refresh-runs">Làm mới</button></div><ol id="history" class="list"></ol>

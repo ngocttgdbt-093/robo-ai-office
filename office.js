@@ -28,27 +28,51 @@ function block(parent, x, y, w, d, base, top, colors, extra) {
 const label = (parent, text, [x,y]) => { svg('text', { x, y, 'text-anchor': 'middle' }, parent).textContent = text; };
 block(byId('floor'), -15, -15, 349, 349, -16, -3, ['#1a384e','#0a1c2c','#102c40'], {stroke:'#4a788c'});
 const controls = [];
+const position = index => [(index % 3) * 111, Math.floor(index / 3) * 111];
+const routes = [
+  [0, 1, 'command'], [1, 2, 'command'], [1, 3, 'command'], [1, 4, 'command'],
+  [2, 5, 'activity'], [3, 4, 'activity'], [4, 5, 'activity'],
+  [6, 7, 'activity'], [7, 8, 'activity'], [5, 8, 'activity'],
+];
+const flows = routes.map(([from, to, kind]) => {
+  const [fx, fy] = position(from);
+  const [tx, ty] = position(to);
+  const dx = Math.sign(tx - fx), dy = Math.sign(ty - fy);
+  const start = point(fx + 48 + 34 * dx, fy + 48 + 34 * dy, 3);
+  const end = point(tx + 48 - 34 * dx, ty + 48 - 34 * dy, 3);
+  const bend = [(start[0] + end[0]) / 2, (start[1] + end[1]) / 2 - 11];
+  const d = `M${start.join(' ')} Q${bend.join(' ')} ${end.join(' ')}`;
+  const group = svg('g', { class: `flow ${kind}` }, byId('flows'));
+  svg('path', {d, class:'route-line', 'marker-end':`url(#${kind}-arrow)`}, group);
+  svg('path', {d, class:'route-pulse'}, group);
+  return { group, from, to, kind };
+});
+let showFlows = true;
+let serverRunning = false;
 let selected = -1;
 let running = false;
 let submitting = false;
 
 rooms.forEach(([name, description, color], i) => {
-  const x = (i % 3) * 111;
-  const y = Math.floor(i / 3) * 111;
+  const [x, y] = position(i);
   const group = svg('g', { class:'room', role:'button', tabindex:0, 'aria-label':name }, byId('rooms'));
-  block(group, x, y, 95, 95, -8, 0, [color + '80','#21475e','#17364d'], {class:'tile'});
+  face(group, [[x,y],[x+95,y],[x+95,y+95],[x,y+95]], color + '48', {class:'tile'});
   const interior = svg('g', {class:'interior'}, group);
-  const glass = {stroke:color,'stroke-width':1.2,'fill-opacity':.45};
-  face(interior, [[x,y,0],[x+95,y,0],[x+95,y,44],[x,y,44]], color, glass);
-  face(interior, [[x,y,0],[x,y+95,0],[x,y+95,44],[x,y,44]], color, glass);
-  block(interior,x+17,y+16,54,28,0,15,['#c5e4ec','#688da0','#4b6d84']);
-  block(interior,x+29,y+20,29,4,15,35,['#638da4','#123447','#7be8ff']);
+  const lounge = [2, 5, 6].includes(i);
+  block(interior,x+17,y+16,54,lounge ? 38 : 28,0,15,['#c5e4ec','#688da0','#4b6d84']);
+  if (lounge) {
+    block(interior,x+20,y+59,24,12,0,8,[color,'#3c596a','#27465b']);
+    block(interior,x+14,y+25,7,22,0,11,[color,'#3c596a','#27465b']);
+  } else {
+    block(interior,x+29,y+20,29,4,15,35,['#638da4','#123447','#7be8ff']);
+  }
+  const robot = svg('g', {class:'robot'}, group);
   const [cx,cy] = point(x+59,y+58,15);
-  svg('ellipse',{cx,cy:cy+14,rx:15,ry:5,fill:'#0a2336'},interior);
-  svg('rect',{x:cx-10,y:cy-5,width:20,height:18,rx:7,fill:'url(#silver)'},interior);
-  svg('rect',{x:cx-15,y:cy-22,width:30,height:20,rx:8,fill:'url(#silver)',stroke:'#bcecff'},interior);
-  svg('rect',{x:cx-10,y:cy-17,width:20,height:9,rx:4,fill:'#123044'},interior);
-  for (const offset of [-4,4]) svg('circle',{cx:cx+offset,cy:cy-12,r:1.8,fill:'#78efff'},interior);
+  svg('ellipse',{cx,cy:cy+14,rx:15,ry:5,fill:'#0a2336'},robot);
+  svg('rect',{x:cx-10,y:cy-5,width:20,height:18,rx:7,fill:'url(#silver)'},robot);
+  svg('rect',{x:cx-15,y:cy-22,width:30,height:20,rx:8,fill:'url(#silver)',stroke:'#bcecff'},robot);
+  svg('rect',{x:cx-10,y:cy-17,width:20,height:9,rx:4,fill:'#123044'},robot);
+  for (const offset of [-4,4]) svg('circle',{cx:cx+offset,cy:cy-12,r:1.8,fill:'#78efff'},robot);
   const [lx,ly] = point(x+82,y+67,1);
   svg('circle',{cx:lx,cy:ly,r:4,class:'light',fill:'#a4b7c1'},group);
   label(group,name,point(x+70,y+83,-2));
@@ -65,19 +89,33 @@ rooms.forEach(([name, description, color], i) => {
 
 function paintRooms() {
   controls.forEach(({group,button}, i) => {
-    const active = i === 3 && running;
+    const active = i === 3 && serverRunning;
     group.classList.toggle('is-selected', i === selected);
-    group.classList.toggle('is-open', i === selected || active);
     group.classList.toggle('is-running', active);
     for (const element of [group, button]) element.setAttribute('aria-pressed', i === selected);
   });
+  byId('flows').setAttribute('visibility', showFlows ? 'visible' : 'hidden');
+  byId('toggle-flows').setAttribute('aria-pressed', showFlows);
+  const related = flows.filter(({group, from, to}) => {
+    const touches = selected === from || selected === to;
+    group.classList.toggle('is-related', touches);
+    group.classList.toggle('is-muted', selected >= 0 && !touches);
+    return touches;
+  });
+  byId('route-description').textContent = showFlows && selected >= 0
+    ? related.map(({from, to}) => rooms[from][0] + ' → ' + rooms[to][0]).join(' · ')
+    : '';
 }
 function selectRoom(i) {
   selected = i;
   paintRooms();
   byId('room-title').textContent = rooms[i]?.[0] ?? 'Toàn cảnh văn phòng';
-  byId('room-description').textContent = controls[i]?.description ?? 'Chọn một phòng để mở không gian và xem chức năng.';
+  byId('room-description').textContent = controls[i]?.description ?? 'Chọn một khu để xem chức năng và làm nổi bật các tuyến liên quan.';
 }
+byId('toggle-flows').onclick = () => {
+  showFlows = !showFlows;
+  paintRooms();
+};
 byId('overview').onclick = () => selectRoom(-1);
 selectRoom(-1);
 
@@ -125,7 +163,8 @@ async function history() {
   try {
     const runs = await api('runs');
     if (request !== historyRequest) return;
-    running = submitting || runs.some(run => run.status === 'running');
+    serverRunning = runs.some(run => run.status === 'running');
+    running = submitting || serverRunning;
     byId('history').replaceChildren(...runs.map(run => {
       const li = document.createElement('li');
       const detail = document.createElement('details');
@@ -144,7 +183,7 @@ async function history() {
       empty.textContent = 'Chưa có lần chạy.';
       byId('history').append(empty);
     }
-    byId('runtime-status').textContent = running ? 'Agent Công nghệ đang chạy' : 'Đã kết nối · Sẵn sàng nhận việc';
+    byId('runtime-status').textContent = serverRunning ? 'Agent Công nghệ đang chạy' : submitting ? 'Đang gửi yêu cầu…' : 'Đã kết nối · Sẵn sàng nhận việc';
     byId('run').disabled = running;
     paintRooms();
   } catch (error) {
@@ -158,14 +197,16 @@ byId('run-form').onsubmit = async event => {
   if (running) return;
   submitting = running = true;
   byId('run').disabled = true;
-  byId('runtime-status').textContent = 'Agent Công nghệ đang chạy';
+  byId('runtime-status').textContent = 'Đang gửi yêu cầu…';
   paintRooms();
+  const progress = setInterval(history, 750);
   let failure;
   try {
     const run = await api('runs', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({repo:byId('repo').value})});
     failure = run.error;
   } catch (error) { failure = error.message; }
-  submitting = running = false;
+  clearInterval(progress);
+  submitting = running = serverRunning = false;
   paintRooms();
   await history();
   if (failure) byId('runtime-status').textContent = failure;
