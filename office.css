@@ -51,10 +51,10 @@ main{max-width:1560px;margin:auto;padding:clamp(14px,3vw,40px)}.intro{margin-bot
 @media(max-width:520px){.wall-scene:not([data-expanded=true]) .screen-queue,.wall-scene:not([data-expanded=true]) #screen-note{display:none}.wall-scene:not([data-expanded=true]) .screen-body{grid-template-columns:1fr}.wall-scene[data-expanded=true] .screen-body{grid-template-columns:1fr}}
 .wall-routes{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1}
 .wall-route-base,.wall-route-pulse{fill:none;stroke:#64ffd2;stroke-linecap:round;stroke-linejoin:round}
-.wall-route-base{stroke-width:5;opacity:.74;filter:drop-shadow(0 0 7px #1edecf)}
-.wall-route-pulse{stroke-width:8;stroke-dasharray:13 27;animation:floor-flow 1.1s linear infinite}
-#wall-sample-routes{opacity:.67}#wall-sample-routes .wall-route-base{stroke-dasharray:11 12}#wall-sample-routes .wall-route-pulse{display:none}
-@keyframes floor-flow{to{stroke-dashoffset:-40}}
+.wall-route-base{stroke-width:4;opacity:.45}
+.wall-route-pulse{stroke-width:8;stroke-dasharray:16 24;filter:drop-shadow(0 0 5px #1edecf);animation:floor-flow .9s linear infinite}
+#wall-sample-routes .wall-route-base,#wall-sample-routes .wall-route-pulse{stroke:#86cbff}
+@keyframes floor-flow{from{stroke-dashoffset:0}to{stroke-dashoffset:-40}}
 .wall-department{position:absolute;z-index:2;transform:translateX(-50%);display:grid;gap:1px;padding:.38cqw .65cqw;background:#071929ed;color:#d8ebff;border:1px solid #6095ae;border-radius:5px;text-align:center;max-width:28%;pointer-events:none;font-size:clamp(7px,1.12cqw,15px)}
 .wall-department span{color:#a9c6d9;font-size:clamp(6px,.89cqw,12px)}
 .wall-department[data-state=active]{border-color:#64ffd2;box-shadow:0 0 1.2cqw #42ffd481}.wall-department[data-state=active] span{color:#80ffe1}.wall-department[data-state=sending]{border-color:#84c8ff}
@@ -66,11 +66,11 @@ main{max-width:1560px;margin:auto;padding:clamp(14px,3vw,40px)}.intro{margin-bot
 .work-screen[data-ci-result=failure] #screen-heading,.work-screen[data-ci-result=timed_out] #screen-heading{color:#ffada7}.work-screen[data-ci-result=success] #screen-heading{color:#80ffe1}
 .workspace{grid-template-columns:minmax(0,1fr)}.intro{text-align:center}.wall-bar{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)}.wall-bar>div{grid-column:2;text-align:center}.wall-bar>button{grid-column:3;justify-self:end}
 .wall-station[data-activity=idle]{display:none}.station-monitor rect{fill:#061a2f;stroke:#54d9fa;stroke-width:2}.station-monitor text{fill:#a7efff;font:600 11px system-ui,sans-serif}.station-feed{fill:none;stroke:#78f5d5;stroke-width:3;stroke-linecap:round;stroke-dasharray:7 4;animation:station-feed 1.4s linear infinite}
-.station-robot{transform-box:view-box;animation:station-motion 2s ease-in-out infinite alternate}
+.station-robot{transform-box:view-box;animation:station-motion 1.6s ease-in-out infinite}
 #wall-station-planning .station-robot{transform-origin:834px 498px}#wall-station-implementation .station-robot{transform-origin:208px 682px}#wall-station-verification .station-robot{transform-origin:1498px 682px}
 .wall-station[data-activity=waiting] .station-feed,.wall-station[data-activity=waiting] .station-robot{animation:none}.wall-station[data-activity=waiting] .station-feed{opacity:.22}
-@keyframes station-feed{to{stroke-dashoffset:-22}}@keyframes station-motion{from{transform:translateY(0)}to{transform:translateY(-3px) rotate(2deg)}}
+@keyframes station-feed{to{stroke-dashoffset:-22}}@keyframes station-motion{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px) rotate(3deg)}}
 @media(max-width:520px){.wall-bar{grid-template-columns:1fr}.wall-bar>div,.wall-bar>button{grid-column:1;justify-self:center}}
 @media(prefers-reduced-motion:reduce){.station-robot,.station-feed{animation:none}}
-.station-monitor .station-code{fill:#78f5d5;font:10px ui-monospace,Consolas,monospace;animation:station-code 2.8s steps(1,end) infinite}.station-code:nth-of-type(3){animation-delay:.25s}.station-code:nth-of-type(4){animation-delay:.5s}@keyframes station-code{0%,80%,100%{opacity:1}88%{opacity:.35}}
+.station-monitor .station-code{fill:#78f5d5;font:10px ui-monospace,Consolas,monospace;animation:station-code 3s steps(8,end) infinite}.station-code:nth-of-type(3){animation-delay:.45s}.station-code:nth-of-type(4){animation-delay:.9s}@keyframes station-code{0%{clip-path:inset(0 100% 0 0)}15%,100%{clip-path:inset(0)}}
 @media(prefers-reduced-motion:reduce){.station-monitor .station-code{animation:none}}
