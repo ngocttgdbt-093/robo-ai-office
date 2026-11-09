@@ -55,3 +55,9 @@ test('records source failure without inventing results', async () => {
   assert.match(run.error, /429/);
   assert.equal(run.result, null);
 });
+
+test('health reports storage and GitHub availability without exposing records', async () => {
+  const response = await setup()('health', {}, false);
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { storage: true, github: true });
+});

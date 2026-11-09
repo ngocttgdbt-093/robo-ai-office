@@ -26,6 +26,14 @@ export function createRuntime(upstream = fetch) {
 
   return async function runtime(request, env) {
     const url = new URL(request.url);
+    if (request.method === 'GET' && url.pathname === '/api/health') {
+      const [storage, github] = await Promise.allSettled([
+        Promise.resolve().then(() => env.DB.prepare('SELECT id FROM agent_runs LIMIT 0').bind().all()),
+        commits('robo-ai-office', 1),
+      ]);
+      const health = { storage: storage.status === 'fulfilled', github: github.status === 'fulfilled' };
+      return json(health, health.storage && health.github ? 200 : 503);
+    }
     const owner = request.headers.get('oai-authenticated-user-id');
     if (!owner) return json({ error: 'Cần đăng nhập để truy cập Agent Runtime.' }, 401);
     if (request.method === 'GET' && url.pathname === '/api/projects') {
