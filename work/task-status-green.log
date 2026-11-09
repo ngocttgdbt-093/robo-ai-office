@@ -1,0 +1,37 @@
+✔ preserves queued (1.453047ms)
+✔ preserves running (0.45411ms)
+✔ preserves completed (0.200778ms)
+✔ preserves failed (0.130973ms)
+✔ normalizes "  QUEUED  " (0.127305ms)
+✔ normalizes "\tRuNnInG\n" (0.085489ms)
+✔ normalizes " Completed " (0.075228ms)
+✔ normalizes "\nFaIlEd\t" (0.102674ms)
+✔ rejects invalid string "" (0.732532ms)
+✔ rejects invalid string " \t\n" (0.224748ms)
+✔ rejects invalid string "pending" (0.16101ms)
+✔ rejects invalid string "done" (0.496887ms)
+✔ rejects invalid string "error" (0.092896ms)
+✔ rejects invalid string "run ning" (0.078748ms)
+✔ rejects invalid string "queued extra" (0.054153ms)
+✔ rejects invalid string "constructor" (0.087454ms)
+✔ rejects invalid string "toString" (1.71803ms)
+✔ rejects invalid string "__proto__" (0.103679ms)
+✔ rejects undefined with TypeError (0.159827ms)
+✔ rejects null with TypeError (0.046129ms)
+✔ rejects number with TypeError (0.038235ms)
+✔ rejects boolean with TypeError (0.036968ms)
+✔ rejects array with TypeError (0.06853ms)
+✔ rejects object with TypeError (0.041892ms)
+✔ rejects boxed string with TypeError (0.045574ms)
+✔ rejects symbol with TypeError (0.036138ms)
+✔ rejects bigint with TypeError (0.036209ms)
+✔ rejects function with TypeError (0.036939ms)
+✔ rejects custom conversion with TypeError (0.034932ms)
+ℹ tests 29
+ℹ suites 0
+ℹ pass 29
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 110.531742

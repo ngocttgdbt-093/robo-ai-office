@@ -1,0 +1,578 @@
+✖ preserves queued (4.644085ms)
+✖ preserves running (0.545617ms)
+✖ preserves completed (0.304219ms)
+✖ preserves failed (0.421153ms)
+✖ normalizes "  QUEUED  " (0.378655ms)
+✖ normalizes "\tRuNnInG\n" (0.343682ms)
+✖ normalizes " Completed " (0.295602ms)
+✖ normalizes "\nFaIlEd\t" (0.243686ms)
+✖ rejects invalid string "" (0.666925ms)
+✖ rejects invalid string " \t\n" (0.458215ms)
+✖ rejects invalid string "pending" (0.260298ms)
+✖ rejects invalid string "done" (0.275122ms)
+✖ rejects invalid string "error" (0.203989ms)
+✖ rejects invalid string "run ning" (0.161107ms)
+✖ rejects invalid string "queued extra" (0.186577ms)
+✖ rejects invalid string "constructor" (0.200405ms)
+✖ rejects invalid string "toString" (2.781349ms)
+✖ rejects invalid string "__proto__" (0.291347ms)
+✖ rejects undefined with TypeError (0.267389ms)
+✖ rejects null with TypeError (0.132561ms)
+✖ rejects number with TypeError (0.105759ms)
+✖ rejects boolean with TypeError (0.146441ms)
+✖ rejects array with TypeError (0.115743ms)
+✖ rejects object with TypeError (0.163892ms)
+✖ rejects boxed string with TypeError (0.117563ms)
+✖ rejects symbol with TypeError (0.132873ms)
+✖ rejects bigint with TypeError (0.3936ms)
+✖ rejects function with TypeError (0.329027ms)
+✖ rejects custom conversion with TypeError (0.120235ms)
+ℹ tests 29
+ℹ suites 0
+ℹ pass 0
+ℹ fail 29
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 216.828669
+
+✖ failing tests:
+
+test at tests/task-status.test.mjs:7:3
+✖ preserves queued (4.644085ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+
+  + undefined
+  - 'queued'
+
+      at TestContext.<anonymous> (file:///workspace/robo-ai-office/tests/task-status.test.mjs:8:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.start (node:internal/test_runner/test:1262:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: 'queued',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/task-status.test.mjs:7:3
+✖ preserves running (0.545617ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+
+  + undefined
+  - 'running'
+
+      at TestContext.<anonymous> (file:///workspace/robo-ai-office/tests/task-status.test.mjs:8:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: 'running',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/task-status.test.mjs:7:3
+✖ preserves completed (0.304219ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+
+  + undefined
+  - 'completed'
+
+      at TestContext.<anonymous> (file:///workspace/robo-ai-office/tests/task-status.test.mjs:8:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: 'completed',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/task-status.test.mjs:7:3
+✖ preserves failed (0.421153ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+
+  + undefined
+  - 'failed'
+
+      at TestContext.<anonymous> (file:///workspace/robo-ai-office/tests/task-status.test.mjs:8:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: 'failed',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/task-status.test.mjs:19:3
+✖ normalizes "  QUEUED  " (0.378655ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+
+  + undefined
+  - 'queued'
+
+      at TestContext.<anonymous> (file:///workspace/robo-ai-office/tests/task-status.test.mjs:20:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: 'queued',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/task-status.test.mjs:19:3
+✖ normalizes "\tRuNnInG\n" (0.343682ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+
+  + undefined
+  - 'running'
+
+      at TestContext.<anonymous> (file:///workspace/robo-ai-office/tests/task-status.test.mjs:20:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: 'running',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/task-status.test.mjs:19:3
+✖ normalizes " Completed " (0.295602ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+
+  + undefined
+  - 'completed'
+
+      at TestContext.<anonymous> (file:///workspace/robo-ai-office/tests/task-status.test.mjs:20:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: 'completed',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/task-status.test.mjs:19:3
+✖ normalizes "\nFaIlEd\t" (0.243686ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+
+  + undefined
+  - 'failed'
+
+      at TestContext.<anonymous> (file:///workspace/robo-ai-office/tests/task-status.test.mjs:20:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: 'failed',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/task-status.test.mjs:26:3
+✖ rejects invalid string "" (0.666925ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception (RangeError).
+      at TestContext.<anonymous> (file:///workspace/robo-ai-office/tests/task-status.test.mjs:27:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at tests/task-status.test.mjs:26:3
+✖ rejects invalid string " \t\n" (0.458215ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception (RangeError).
+      at TestContext.<anonymous> (file:///workspace/robo-ai-office/tests/task-status.test.mjs:27:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at tests/task-status.test.mjs:26:3
+✖ rejects invalid string "pending" (0.260298ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception (RangeError).
+      at TestContext.<anonymous> (file:///workspace/robo-ai-office/tests/task-status.test.mjs:27:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at tests/task-status.test.mjs:26:3
+✖ rejects invalid string "done" (0.275122ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception (RangeError).
+      at TestContext.<anonymous> (file:///workspace/robo-ai-office/tests/task-status.test.mjs:27:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at tests/task-status.test.mjs:26:3
+✖ rejects invalid string "error" (0.203989ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception (RangeError).
+      at TestContext.<anonymous> (file:///workspace/robo-ai-office/tests/task-status.test.mjs:27:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at tests/task-status.test.mjs:26:3
+✖ rejects invalid string "run ning" (0.161107ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception (RangeError).
+      at TestContext.<anonymous> (file:///workspace/robo-ai-office/tests/task-status.test.mjs:27:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at tests/task-status.test.mjs:26:3
+✖ rejects invalid string "queued extra" (0.186577ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception (RangeError).
+      at TestContext.<anonymous> (file:///workspace/robo-ai-office/tests/task-status.test.mjs:27:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at tests/task-status.test.mjs:26:3
+✖ rejects invalid string "constructor" (0.200405ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception (RangeError).
+      at TestContext.<anonymous> (file:///workspace/robo-ai-office/tests/task-status.test.mjs:27:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at tests/task-status.test.mjs:26:3
+✖ rejects invalid string "toString" (2.781349ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception (RangeError).
+      at TestContext.<anonymous> (file:///workspace/robo-ai-office/tests/task-status.test.mjs:27:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at tests/task-status.test.mjs:26:3
+✖ rejects invalid string "__proto__" (0.291347ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception (RangeError).
+      at TestContext.<anonymous> (file:///workspace/robo-ai-office/tests/task-status.test.mjs:27:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at tests/task-status.test.mjs:38:3
+✖ rejects undefined with TypeError (0.267389ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception (TypeError).
+      at TestContext.<anonymous> (file:///workspace/robo-ai-office/tests/task-status.test.mjs:39:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at tests/task-status.test.mjs:38:3
+✖ rejects null with TypeError (0.132561ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception (TypeError).
+      at TestContext.<anonymous> (file:///workspace/robo-ai-office/tests/task-status.test.mjs:39:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at tests/task-status.test.mjs:38:3
+✖ rejects number with TypeError (0.105759ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception (TypeError).
+      at TestContext.<anonymous> (file:///workspace/robo-ai-office/tests/task-status.test.mjs:39:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at tests/task-status.test.mjs:38:3
+✖ rejects boolean with TypeError (0.146441ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception (TypeError).
+      at TestContext.<anonymous> (file:///workspace/robo-ai-office/tests/task-status.test.mjs:39:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at tests/task-status.test.mjs:38:3
+✖ rejects array with TypeError (0.115743ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception (TypeError).
+      at TestContext.<anonymous> (file:///workspace/robo-ai-office/tests/task-status.test.mjs:39:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at tests/task-status.test.mjs:38:3
+✖ rejects object with TypeError (0.163892ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception (TypeError).
+      at TestContext.<anonymous> (file:///workspace/robo-ai-office/tests/task-status.test.mjs:39:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at tests/task-status.test.mjs:38:3
+✖ rejects boxed string with TypeError (0.117563ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception (TypeError).
+      at TestContext.<anonymous> (file:///workspace/robo-ai-office/tests/task-status.test.mjs:39:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at tests/task-status.test.mjs:38:3
+✖ rejects symbol with TypeError (0.132873ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception (TypeError).
+      at TestContext.<anonymous> (file:///workspace/robo-ai-office/tests/task-status.test.mjs:39:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at tests/task-status.test.mjs:38:3
+✖ rejects bigint with TypeError (0.3936ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception (TypeError).
+      at TestContext.<anonymous> (file:///workspace/robo-ai-office/tests/task-status.test.mjs:39:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at tests/task-status.test.mjs:38:3
+✖ rejects function with TypeError (0.329027ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception (TypeError).
+      at TestContext.<anonymous> (file:///workspace/robo-ai-office/tests/task-status.test.mjs:39:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at tests/task-status.test.mjs:38:3
+✖ rejects custom conversion with TypeError (0.120235ms)
+  AssertionError [ERR_ASSERTION]: Missing expected exception (TypeError).
+      at TestContext.<anonymous> (file:///workspace/robo-ai-office/tests/task-status.test.mjs:39:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    operator: 'throws',
+    diff: 'simple'
+  }
