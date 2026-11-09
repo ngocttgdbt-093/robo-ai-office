@@ -41,5 +41,5 @@ try{
  if(!data.workflowRuns.length&&!data.pullRequests.length)board.append(el('p','Chưa có sự kiện công khai từ GitHub.'));
 }catch{message.textContent='Không thể lấy dữ liệu GitHub. Trạng thái không xác định.';board.replaceChildren();updated.textContent='Chưa xác minh'}
 }
-document.getElementById('reload').addEventListener('click',load);load();
+document.getElementById('reload').addEventListener('click',load);load();setInterval(load,60000);
 </script></body></html>`;
