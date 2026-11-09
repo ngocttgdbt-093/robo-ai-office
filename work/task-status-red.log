@@ -42,10 +42,10 @@ test at tests/task-status.test.mjs:7:3
 ✖ preserves queued (4.644085ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
   + actual - expected
-  
+
   + undefined
   - 'queued'
-  
+
       at TestContext.<anonymous> (file:///workspace/robo-ai-office/tests/task-status.test.mjs:8:12)
       at Test.runInAsyncScope (node:async_hooks:227:14)
       at Test.run (node:internal/test_runner/test:1402:25)
@@ -63,10 +63,10 @@ test at tests/task-status.test.mjs:7:3
 ✖ preserves running (0.545617ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
   + actual - expected
-  
+
   + undefined
   - 'running'
-  
+
       at TestContext.<anonymous> (file:///workspace/robo-ai-office/tests/task-status.test.mjs:8:12)
       at Test.runInAsyncScope (node:async_hooks:227:14)
       at Test.run (node:internal/test_runner/test:1402:25)
@@ -86,10 +86,10 @@ test at tests/task-status.test.mjs:7:3
 ✖ preserves completed (0.304219ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
   + actual - expected
-  
+
   + undefined
   - 'completed'
-  
+
       at TestContext.<anonymous> (file:///workspace/robo-ai-office/tests/task-status.test.mjs:8:12)
       at Test.runInAsyncScope (node:async_hooks:227:14)
       at Test.run (node:internal/test_runner/test:1402:25)
@@ -109,10 +109,10 @@ test at tests/task-status.test.mjs:7:3
 ✖ preserves failed (0.421153ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
   + actual - expected
-  
+
   + undefined
   - 'failed'
-  
+
       at TestContext.<anonymous> (file:///workspace/robo-ai-office/tests/task-status.test.mjs:8:12)
       at Test.runInAsyncScope (node:async_hooks:227:14)
       at Test.run (node:internal/test_runner/test:1402:25)
@@ -132,10 +132,10 @@ test at tests/task-status.test.mjs:19:3
 ✖ normalizes "  QUEUED  " (0.378655ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
   + actual - expected
-  
+
   + undefined
   - 'queued'
-  
+
       at TestContext.<anonymous> (file:///workspace/robo-ai-office/tests/task-status.test.mjs:20:12)
       at Test.runInAsyncScope (node:async_hooks:227:14)
       at Test.run (node:internal/test_runner/test:1402:25)
@@ -155,10 +155,10 @@ test at tests/task-status.test.mjs:19:3
 ✖ normalizes "\tRuNnInG\n" (0.343682ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
   + actual - expected
-  
+
   + undefined
   - 'running'
-  
+
       at TestContext.<anonymous> (file:///workspace/robo-ai-office/tests/task-status.test.mjs:20:12)
       at Test.runInAsyncScope (node:async_hooks:227:14)
       at Test.run (node:internal/test_runner/test:1402:25)
@@ -178,10 +178,10 @@ test at tests/task-status.test.mjs:19:3
 ✖ normalizes " Completed " (0.295602ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
   + actual - expected
-  
+
   + undefined
   - 'completed'
-  
+
       at TestContext.<anonymous> (file:///workspace/robo-ai-office/tests/task-status.test.mjs:20:12)
       at Test.runInAsyncScope (node:async_hooks:227:14)
       at Test.run (node:internal/test_runner/test:1402:25)
@@ -201,10 +201,10 @@ test at tests/task-status.test.mjs:19:3
 ✖ normalizes "\nFaIlEd\t" (0.243686ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
   + actual - expected
-  
+
   + undefined
   - 'failed'
-  
+
       at TestContext.<anonymous> (file:///workspace/robo-ai-office/tests/task-status.test.mjs:20:12)
       at Test.runInAsyncScope (node:async_hooks:227:14)
       at Test.run (node:internal/test_runner/test:1402:25)
