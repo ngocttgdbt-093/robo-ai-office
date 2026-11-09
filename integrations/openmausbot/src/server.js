@@ -29,5 +29,7 @@ export function createBridge({ token, maxBytes = 16384 } = {}) {
 }
 if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) {
   const server = createBridge({token:process.env.BRIDGE_TOKEN});
-  server.listen(Number(process.env.BRIDGE_PORT || 8788), '127.0.0.1', () => console.log('Bridge listening on loopback'));
+  const port = Number(process.env.PORT || process.env.BRIDGE_PORT || 8788);
+  const host = process.env.RENDER === 'true' ? '0.0.0.0' : '127.0.0.1';
+  server.listen(port, host, () => console.log('Bridge listening; authenticated API required'));
 }
