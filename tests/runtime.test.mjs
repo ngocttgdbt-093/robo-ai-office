@@ -84,3 +84,17 @@ test('Work bridge rejects anonymous writes and records real phase changes exactl
   assert.equal(task.project, 'ROBO AI OFFICE');
   assert.deepEqual(task.skills, ['TDD']);
 });
+
+test('GitHub Actions activity is authenticated and preserves upstream run status', async () => {
+  const request = setup(async url => {
+    assert.match(url, /robo-ai-office\/actions\/runs/);
+    return Response.json({workflow_runs:[{id:7,name:'Verify',status:'in_progress',conclusion:null,updated_at:'2026-11-09T01:00:00Z'}]});
+  });
+  assert.equal((await request('ci', {}, false)).status, 401);
+  const response = await request('ci');
+  assert.equal(response.status, 200);
+  assert.deepEqual((await response.json())[0], {
+    id:7, name:'Verify', status:'in_progress', conclusion:null,
+    updated:'2026-11-09T01:00:00Z', url:'https://github.com/ngocttgdbt-093/robo-ai-office/actions/runs/7',
+  });
+});

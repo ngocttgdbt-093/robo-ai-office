@@ -209,6 +209,7 @@ byId('mirror-view').onclick = () => changeView(zoom, angle, !mirrored);
 byId('reset-view').onclick = () => changeView(100, 0, false);
 paintCamera();
 
+let ciRun = null;
 const ocrProject = 'Dự án 03 — OCR giấy tờ TBTN/YCBT';
 let trackedProject = null;
 let ocrSignalUnavailable = false;
@@ -218,27 +219,38 @@ byId('track-ocr').onclick = () => {
   paintWorkScreen(screenTask, screenLive);
 };
 
+byId('wall-focus').onclick = () => {
+  const wall = byId('wall-scene');
+  const expanded = wall.getAttribute('data-expanded') !== 'true';
+  wall.setAttribute('data-expanded', String(expanded));
+  byId('wall-focus').setAttribute('aria-pressed', expanded);
+  byId('wall-focus').textContent = expanded ? 'Về phối cảnh' : 'Phóng màn hình';
+};
+
 const screenModes = {
-  planning: { title:'Đang lên phương án', lines:['• Đọc yêu cầu', '• Xác định phần cần thay đổi'] },
-  implementation: { title:'Đang lập trình', lines:['01  // mở phần cần chỉnh', '02  function updateFeature() {', '03    // mô phỏng thao tác chỉnh sửa', '04  }'] },
-  verification: { title:'Đang kiểm thử', lines:['▶  Chuẩn bị kiểm tra', '…  Đối chiếu hành vi và kết quả'] },
+  planning: { title:'Đang lên phương án', lines:['Đã nhận tín hiệu phân tích'] },
+  implementation: { title:'Đang thực hiện', lines:['Đã nhận tín hiệu thực hiện'] },
+  verification: { title:'Đang kiểm thử', lines:['Đã nhận tín hiệu kiểm thử', 'Đang chờ bằng chứng kết quả'] },
 };
 function paintWorkScreen(task, live = false) {
-  const project = live ? task.project : serverRunning ? serverRepo : null;
-  const active = live || serverRunning;
+  const ci = !live && !serverRunning ? ciRun : null;
+  const project = live ? task.project : serverRunning ? serverRepo : ci ? 'ROBO AI OFFICE' : null;
+  const active = live || serverRunning || Boolean(ci);
   const tracking = !active && trackedProject;
   byId('project-led').textContent = project ?? (live ? task.title : trackedProject ?? 'ĐANG CHỜ DỰ ÁN');
   byId('project-led-caption').textContent = tracking
     ? ocrSignalUnavailable ? 'ĐANG XEM · MẤT KẾT NỐI' : 'ĐANG XEM · CHƯA CÓ TÍN HIỆU'
-    : live && !project ? 'TÁC VỤ ĐANG CHẠY' : 'DỰ ÁN ĐANG CHẠY';
+    : ci ? 'GITHUB ACTIONS' : active ? 'DỰ ÁN ĐANG CHẠY' : 'VĂN PHÒNG ĐIỀU HÀNH';
   if (tracking) task = null;
   byId('project-led').setAttribute('data-active', active);
   const mode = live ? screenModes[task.phase] : null;
   const outcome = {completed:'Hoàn tất', failed:'Gặp lỗi', running:'Chưa có cập nhật mới'};
   byId('work-screen').setAttribute('data-mode', live ? task.phase : 'idle');
-  byId('screen-heading').textContent = mode?.title ?? (task ? outcome[task.status] : 'Đang chờ tín hiệu Work');
-  byId('screen-note').textContent = mode
-    ? task.agent + ' · ' + phaseLabels[task.phase] + ' · Minh họa theo giai đoạn thật'
+  byId('screen-task').textContent = ci?.name ?? task?.title ?? '';
+  byId('screen-source').textContent = live ? 'TÍN HIỆU WORK' : serverRunning || ci ? 'GITHUB' : 'TỔNG QUAN';
+  byId('screen-heading').textContent = ci ? (ci.status === 'in_progress' ? 'Workflow đang chạy' : 'Workflow đang chờ') : serverRunning && !live ? 'Đang đọc commit GitHub' : mode?.title ?? (task ? outcome[task.status] : 'Đang chờ tín hiệu Work');
+  byId('screen-note').textContent = ci ? 'Trạng thái từ GitHub Actions' : mode
+    ? task.agent + ' · ' + phaseLabels[task.phase] + ' · Tín hiệu từ phiên thực thi'
     : task ? task.agent + ' · ' + phaseLabels[task.phase] : 'Chế độ hiển thị sẽ đổi theo giai đoạn của tác vụ.';
   byId('screen-lines').replaceChildren(...(mode?.lines ?? []).map(text => {
     const row = document.createElement('li');
@@ -469,7 +481,14 @@ async function refreshWork() {
     const ocrRunning = tasks.some(task => task.project === ocrProject && isLive(task));
     ocrSignalUnavailable = false;
     byId('ocr-signal').textContent = ocrRunning ? 'Đã nhận tín hiệu đang chạy từ Work.' : 'Chưa có tín hiệu đang chạy từ phiên Work của dự án.';
-    const recent = tasks.find(isLive);
+    const liveTasks = tasks.filter(isLive);
+    const recent = liveTasks.find(task => task.phase === 'verification') ?? liveTasks[0];
+    const parallel = liveTasks.filter(task => task !== recent).slice(0,3);
+    byId('screen-queue').replaceChildren(...(parallel.length ? parallel.map(task => task.project || task.title) : ['Chưa có tác vụ song song']).map(name => {
+      const item = document.createElement('li');
+      item.textContent = name;
+      return item;
+    }));
     screenTask = recent ?? tasks[0];
     screenLive = Boolean(recent);
     paintWorkScreen(screenTask, screenLive);
@@ -483,6 +502,9 @@ async function refreshWork() {
     screenTask = null;
     screenLive = false;
     ocrSignalUnavailable = true;
+    const offline = document.createElement('li');
+    offline.textContent = 'Tạm mất kết nối';
+    byId('screen-queue').replaceChildren(offline);
     byId('ocr-signal').textContent = 'Tạm thời không đọc được tín hiệu Work.';
     paintWorkScreen();
     byId('work-status').textContent = 'Tạm mất kết nối. Lịch sử bên dưới có thể đã cũ.';
@@ -492,3 +514,32 @@ async function refreshWork() {
 refreshWork();
 setInterval(() => { if (!document.hidden) refreshWork(); }, 3500);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshWork(); });
+
+async function refreshCi() {
+  try {
+    const runs = await api('ci');
+    ciRun = runs.find(run => run.status === 'in_progress') ??
+      runs.find(run => ['queued','requested','waiting','pending'].includes(run.status)) ?? null;
+    const current = ciRun ?? runs[0];
+    const display = byId('ci-status');
+    display.textContent = 'GitHub Actions · ';
+    if (current) {
+      const link = document.createElement('a');
+      link.href = current.url;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.textContent = current.name;
+      const state = {in_progress:'Đang chạy',queued:'Đang xếp hàng',waiting:'Đang chờ',completed:'Đã kết thúc'};
+      const outcome = {success:'Thành công',failure:'Thất bại',cancelled:'Đã hủy',timed_out:'Hết thời gian'};
+      display.append(link, ' · ' + (outcome[current.conclusion] ?? state[current.status] ?? current.status));
+    } else {
+      display.append('Chưa có lượt chạy.');
+    }
+  } catch {
+    ciRun = null;
+    byId('ci-status').textContent = 'Tạm thời không đọc được GitHub Actions.';
+  }
+  paintWorkScreen(screenTask, screenLive);
+}
+refreshCi();
+setInterval(() => { if (!document.hidden) refreshCi(); }, 60_000);

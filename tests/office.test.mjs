@@ -146,3 +146,10 @@ test('tracking OCR shows a clearly inactive LED until a live event arrives', () 
   assert.equal(get('project-led').attributes['data-active'], true);
   assert.equal(get('project-led-caption').textContent, 'DỰ ÁN ĐANG CHẠY');
 });
+
+test('the wall uses an integrated backdrop and does not show a passing test on a running verification', () => {
+  const source = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  assert.match(source, /class="wall-scene"[\s\S]*office-floor\.webp[\s\S]*id="project-led"[\s\S]*id="work-screen"/);
+  assert.match(source, /id="wall-focus"/);
+  assert.match(source, /<details class="floor-map"/);
+});
