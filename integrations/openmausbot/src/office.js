@@ -26,18 +26,19 @@ const labels={idle:'Chờ lệnh',queued:'Trong hàng đợi',running:'Đang ch�
 function el(tag,text,className){const node=document.createElement(tag);if(text!==undefined)node.textContent=text;if(className)node.className=className;return node}
 async function load(){
 try{
- const response=await fetch('/api/public/github-status',{cache:'no-store'});
+ const response=await fetch('/api/github-status',{cache:'no-store'});
  if(!response.ok)throw Error('HTTP '+response.status);
  const data=await response.json();board.replaceChildren();
- updated.textContent='Nguồn: '+data.source+' · Cập nhật: '+(data.updatedAt||'chưa có');
- message.textContent=data.verified&&!data.stale?'Dữ liệu GitHub Actions đã đọc được. Không đồng nghĩa Agent đang chạy.':'Nguồn GitHub chưa xác minh được, dữ liệu có thể cũ hoặc thiếu.';
- for(const run of data.runs){
-   const card=el('article'),badge=el('span',labels[run.state]||'Chưa rõ','tag '+run.state);
-   card.append(badge,el('strong',run.task),el('small','Dự án: '+run.project),el('p','Cập nhật: '+(run.updatedAt||'không rõ')));
+ updated.textContent='Nguồn: '+data.source+' · Cập nhật: '+(data.observedAt||'chưa có');
+ message.textContent=!data.stale?'Dữ liệu GitHub Actions đã đọc được. Không đồng nghĩa Agent đang chạy.':'Nguồn GitHub chưa xác minh được, dữ liệu có thể cũ hoặc thiếu.';
+ for(const run of data.workflowRuns){
+   const card=el('article'),badge=el('span',(run.status==='completed'?(run.conclusion||'Hoàn thành'):run.status),'tag '+(run.status==='completed'?(run.conclusion||'completed'):run.status));
+   card.append(badge,el('strong',run.name),el('small','Nguồn: GitHub Actions'),el('p','Cập nhật: '+(run.updatedAt||'không rõ')));
    if(run.url){const link=el('a','Mở lần chạy trên GitHub');link.href=run.url;link.target='_blank';link.rel='noopener noreferrer';card.append(link)}
    board.append(card);
  }
- if(!data.runs.length)board.append(el('p','Chưa có dữ liệu lần chạy nào từ GitHub.'));
+ for(const pr of data.pullRequests){const card=el('article');card.append(el('span',pr.draft?'PR chờ hoàn thiện':'Pull Request','tag'),el('strong','#'+pr.number+' '+pr.title));const link=el('a','Xem Pull Request');link.href=pr.url;link.target='_blank';link.rel='noopener noreferrer';card.append(link);board.append(card)}
+ if(!data.workflowRuns.length&&!data.pullRequests.length)board.append(el('p','Chưa có sự kiện công khai từ GitHub.'));
 }catch{message.textContent='Không thể lấy dữ liệu GitHub. Trạng thái không xác định.';board.replaceChildren();updated.textContent='Chưa xác minh'}
 }
 document.getElementById('reload').addEventListener('click',load);load();
