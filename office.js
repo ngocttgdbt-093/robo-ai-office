@@ -591,12 +591,12 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) refr
 
 async function refreshCi() {
   try {
-    const runs = await api('ci');
+    const {runs, source} = await api('ci');
     ciRun = runs.find(run => run.status === 'in_progress') ??
       runs.find(run => ['queued','requested','waiting','pending'].includes(run.status)) ?? null;
     const current = ciRun ?? runs[0];
     const display = byId('ci-status');
-    display.textContent = 'GitHub Actions · ';
+    display.textContent = source === 'render' ? 'GitHub Actions qua Render · ' : 'GitHub Actions trực tiếp · ';
     if (current) {
       const link = document.createElement('a');
       link.href = current.url;

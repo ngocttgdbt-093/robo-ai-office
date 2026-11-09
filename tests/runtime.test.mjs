@@ -93,8 +93,24 @@ test('GitHub Actions activity is authenticated and preserves upstream run status
   assert.equal((await request('ci', {}, false)).status, 401);
   const response = await request('ci');
   assert.equal(response.status, 200);
-  assert.deepEqual((await response.json())[0], {
+  assert.deepEqual((await response.json()).runs[0], {
     id:7, name:'Verify', status:'in_progress', conclusion:null,
     updated:'2026-11-09T01:00:00Z', url:'https://github.com/ngocttgdbt-093/robo-ai-office/actions/runs/7',
   });
+});
+
+test('uses fresh Render workflow data and falls back when the bridge snapshot is stale', async () => {
+  for (const stale of [false, true]) {
+    const calls = [];
+    const request = setup(async url => {
+      calls.push(url);
+      return url.includes('.onrender.com')
+        ? Response.json({repository:'ngocttgdbt-093/robo-ai-office',observedAt:new Date().toISOString(),stale,workflowRuns:[{id:'42',name:'Build',status:'queued'}]})
+        : Response.json({workflow_runs:[]});
+    });
+    const body = await (await request('ci')).json();
+    assert.equal(body.source, stale ? 'github' : 'render');
+    assert.equal(calls.length, stale ? 2 : 1);
+    if (!stale) assert.equal(body.runs[0].id, 42);
+  }
 });

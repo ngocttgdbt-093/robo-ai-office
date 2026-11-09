@@ -88,23 +88,44 @@ export function createRuntime(upstream = fetch) {
     const owner = request.headers.get('oai-authenticated-user-id');
     if (!owner) return json({ error: 'Cần đăng nhập để truy cập Agent Runtime.' }, 401);
     if (request.method === 'GET' && url.pathname === '/api/ci') {
+      const repo = `${organization}/robo-ai-office`;
+      const runs = items => items.flatMap(run => {
+        const id = Number(run?.id);
+        if (!Number.isSafeInteger(id) || id < 1 || typeof run.name !== 'string' || typeof run.status !== 'string') return [];
+        return [{
+          id, name:run.name, status:run.status, conclusion:run.conclusion ?? null,
+          updated:run.updated_at ?? run.updatedAt,
+          url:`https://github.com/${repo}/actions/runs/${id}`,
+        }];
+      });
       try {
-        const repo = 'robo-ai-office';
-        const base = `https://api.github.com/repos/${organization}/${repo}/actions/runs`;
-        const response = await upstream(base + '?per_page=12', {
+        const response = await upstream('https://robo-office-status-bridge-pilot.onrender.com/api/github-status', {
+          signal: AbortSignal.timeout(7500),
+        });
+        if (response.ok) {
+          const snapshot = await response.json();
+          const age = Date.now() - Date.parse(snapshot.observedAt);
+          if (snapshot.repository === repo && !snapshot.stale && age >= -30000 &&
+              age < 180000 && Array.isArray(snapshot.workflowRuns)) {
+            return json({source:'render',runs:runs(snapshot.workflowRuns)});
+          }
+        }
+      } catch {
+        // Render Free can be asleep. The existing public GitHub API is the fallback.
+      }
+      try {
+        const response = await upstream(`https://api.github.com/repos/${repo}/actions/runs?per_page=12`, {
           headers: { Accept:'application/vnd.github+json', 'User-Agent':'Robo-AI-Office' },
           signal: AbortSignal.timeout(8500),
         });
         if (!response.ok) throw new Error('GitHub HTTP ' + response.status);
         const { workflow_runs } = await response.json();
-        return json(workflow_runs.filter(run => Number.isSafeInteger(run.id)).map(run => ({
-          id:run.id, name:run.name, status:run.status, conclusion:run.conclusion, updated:run.updated_at,
-          url:`https://github.com/${organization}/${repo}/actions/runs/${run.id}`,
-        })));
+        return json({source:'github',runs:runs(workflow_runs)});
       } catch (error) {
         return json({error:sourceError(error)}, 503);
       }
     }
+
     if (request.method === 'GET' && url.pathname === '/api/projects') {
       const projects = await Promise.all(repositories.map(async repo => {
         try {
