@@ -1,6 +1,8 @@
 name: Observe ROBO AI OFFICE GitHub activity
 
 on:
+  pull_request:
+    branches: [setup/agent-foundation]
   workflow_dispatch:
   schedule:
     - cron: '17 * * * *'
@@ -12,6 +14,10 @@ permissions:
 
 jobs:
   observe:
+    if: >-
+      github.event_name != 'pull_request' ||
+      (github.event.pull_request.head.repo.full_name == github.repository &&
+       github.head_ref == 'feat/github-event-observer')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -20,11 +26,32 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python3 scripts/observe_github.py
+      - name: Verify snapshot against the current PR and Actions run
+        if: github.event_name == 'pull_request'
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          snapshot = json.loads(Path('artifacts/github-activity.json').read_text(encoding='utf-8'))
+          event = json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text(encoding='utf-8'))
+          pr = event['pull_request']
+          run_id = int(os.environ['GITHUB_RUN_ID'])
+          assert snapshot['repository'] == os.environ['GITHUB_REPOSITORY']
+          assert snapshot['health'] == 'ok' and snapshot['read_only'] and not snapshot['errors']
+          assert any(item['number'] == pr['number'] and item['head'] == pr['head']['ref']
+                     and item['base'] == pr['base']['ref'] and item['state'] == 'open'
+                     for item in snapshot['pull_requests']), 'Current PR missing from snapshot'
+          assert any(item['id'] == run_id and item['event'] == 'pull_request'
+                     for item in snapshot['workflow_runs']), 'Current Actions run missing from snapshot'
+          print(f"Snapshot verified against PR #{pr['number']} and Actions run {run_id}")
+          PY
       - name: Upload snapshot
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: robo-github-activity
           path: artifacts/github-activity.json
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 7
