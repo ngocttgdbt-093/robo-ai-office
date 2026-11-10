@@ -7,7 +7,7 @@ on:
       - 'scripts/graphify_drive_backup.py'
       - 'scripts/test_graphify_drive_backup.py'
   push:
-    branches: [main]
+    branches: [main, feat/graphify-drive-backup-20261110]
   workflow_dispatch:
     inputs:
       upload_to_drive:
@@ -51,8 +51,24 @@ jobs:
             graphify-out/graph.html
           if-no-files-found: error
           retention-days: 7
-      - name: Upload Drive snapshot when enabled
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.upload_to_drive == true }}
+  verify-drive-backup:
+    needs: graphify
+    if: >-
+      github.ref == 'refs/heads/feat/graphify-drive-backup-20261110' &&
+      ((github.event_name == 'push' && vars.GRAPHIFY_DRIVE_PILOT == 'true') ||
+       (github.event_name == 'workflow_dispatch' && inputs.upload_to_drive))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: graphify-drive-pilot
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: graphify-robo-${{ github.sha }}
+          path: graphify-out
+      - name: Upload and verify the downloaded Drive snapshot
         env:
           GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
           GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
