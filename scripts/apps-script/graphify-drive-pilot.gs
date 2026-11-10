@@ -9,7 +9,7 @@ const GRAPHIFY_PROJECTS = Object.freeze({
   dashboard: {repo: 'pti093db', id: 1443937630, workflow: 413612305,
     folder: '15sWtMe4aL23SvBhGmi7l2_AU-lLXHvqL', prefix: 'pti093db'},
   ghep093: {repo: 'pti093', id: 1403350518, workflow: 413612019,
-    folder: '1slPbX7N0PNp1sAiXZTmbd78N7VM-OKj0', prefix: 'pti093'},
+    folder: '1slPbX7N0PNp1sAiZXTmbd78N7VM-OKj0', prefix: 'pti093'},
   ghepPti: {repo: 'pti', id: 1416385433, workflow: 413612517,
     folder: '113dna1FSaxLrDQuC5qodFQjo5khxrplW', prefix: 'pti'},
 });
