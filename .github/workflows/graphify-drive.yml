@@ -1,0 +1,79 @@
+name: Graphify local graph and optional Drive backup
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/graphify-drive.yml'
+      - 'scripts/graphify_drive_backup.py'
+      - 'scripts/test_graphify_drive_backup.py'
+  push:
+    branches: [main, feat/graphify-drive-backup-20261110]
+  schedule:
+    - cron: '20 20 * * *' # 03:20 Asia/Ho_Chi_Minh
+  workflow_dispatch:
+    inputs:
+      upload_to_drive:
+        description: 'Upload to Google Drive (requires separately configured secrets)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: graphify-${{ github.ref }}-${{ github.event_name == 'schedule' && 'scheduled' || 'ci' }}
+  cancel-in-progress: true
+
+jobs:
+  graphify:
+    if: github.event_name != 'schedule' || vars.GRAPHIFY_SCHEDULE_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate backup code
+        run: python3 -m unittest discover -s scripts -p 'test_graphify_drive_backup.py' -v
+      - name: Install Graphify CLI in isolated environment
+        run: |
+          python3 -m pip install --user pipx
+          python3 -m pipx ensurepath
+          python3 -m pipx install graphifyy==0.9.105
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Generate local code graph
+        run: |
+          graphify --help
+          graphify update .
+          test -s graphify-out/graph.json
+      - name: Upload bounded CI artifact (not production data)
+        uses: actions/upload-artifact@v4
+        with:
+          name: graphify-robo-${{ github.sha }}
+          path: |
+            graphify-out/graph.json
+            graphify-out/GRAPH_REPORT.md
+            graphify-out/graph.html
+          if-no-files-found: error
+          retention-days: 7
+  verify-drive-backup:
+    needs: graphify
+    if: >-
+      github.ref == 'refs/heads/feat/graphify-drive-backup-20261110' &&
+      github.event_name == 'workflow_dispatch' && inputs.upload_to_drive
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: graphify-drive-pilot
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: graphify-robo-${{ github.sha }}
+          path: graphify-out
+      - name: Upload and verify the downloaded Drive snapshot
+        env:
+          GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
+          GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
+          GOOGLE_OAUTH_REFRESH_TOKEN: ${{ secrets.GOOGLE_OAUTH_REFRESH_TOKEN }}
+          GRAPHIFY_DRIVE_FOLDER_ID: ${{ secrets.GRAPHIFY_DRIVE_FOLDER_ID }}
+        run: python3 scripts/graphify_drive_backup.py
