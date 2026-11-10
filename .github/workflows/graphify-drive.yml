@@ -7,7 +7,7 @@ on:
       - 'scripts/graphify_drive_backup.py'
       - 'scripts/test_graphify_drive_backup.py'
   push:
-    branches: [main]
+    branches: [main, feat/graphify-drive-backup-20261110]
   workflow_dispatch:
     inputs:
       upload_to_drive:

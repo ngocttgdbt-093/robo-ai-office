@@ -1,15 +1,60 @@
 /**
- * Manual backup trial for one verified ROBO AI OFFICE artifact.
+ * Manual backup trial for the latest successful ROBO AI OFFICE branch artifact.
  * Store a repository-limited, Actions read-only GitHub token in Script Properties.
  */
 function verifyGraphifyDrivePilot() {
-  const folderId = '1q_DzAkxFveq1YS3nqbeOIfN958jHorqw';
-  const artifactUrl = 'https://api.github.com/repos/ngocttgdbt-093/robo-ai-office/actions/artifacts/13784845527/zip';
-  const name = 'graphify-robo-469a435dcd9e-apps-script-pilot.zip';
-  const expectedSha = '824da9ffbbfb15fc2a24e824c5d8b699f2a75bf6bf39f4088edc3d03957b75ef';
+  const branch = 'feat/graphify-drive-backup-20261110';
+  const api = 'https://api.github.com/repos/ngocttgdbt-093/robo-ai-office/actions';
   const token = PropertiesService.getScriptProperties().getProperty('GRAPHIFY_GITHUB_READ_TOKEN');
   if (!token) throw new Error('Missing GRAPHIFY_GITHUB_READ_TOKEN in Script Properties.');
 
+  const runs = graphifyGitHubJson(
+    api + '/workflows/413434772/runs?status=success&event=push&per_page=1&branch=' + encodeURIComponent(branch),
+    token
+  );
+  const run = runs.workflow_runs?.[0];
+  if (run?.head_branch !== branch || run.conclusion !== 'success' ||
+      run.head_repository?.id !== 1448917996 || !Number.isSafeInteger(run.id) ||
+      !/^[a-f0-9]{40}$/.test(run.head_sha)) {
+    throw new Error('No successful Graphify run found on the approved branch.');
+  }
+  const artifacts = graphifyGitHubJson(api + '/runs/' + run.id + '/artifacts?per_page=100', token);
+  const matches = artifacts.artifacts.filter(item => item.name === 'graphify-robo-' + run.head_sha && !item.expired);
+  const artifact = matches[0];
+  if (matches.length !== 1 || !Number.isSafeInteger(artifact.id) ||
+      !Number.isSafeInteger(artifact.size_in_bytes) || artifact.size_in_bytes < 1 ||
+      artifact.size_in_bytes > 20 * 1024 * 1024 || !/^sha256:[a-f0-9]{64}$/.test(artifact.digest)) {
+    throw new Error('Expected one bounded, unexpired Graphify artifact with a SHA-256 digest.');
+  }
+  graphifyBackup(
+    api + '/artifacts/' + artifact.id + '/zip',
+    'graphify-robo-' + run.head_sha.slice(0, 12) + '-apps-script-pilot.zip',
+    artifact.digest.slice(7), artifact.size_in_bytes, token
+  );
+}
+
+function graphifyGitHubHeaders(token) {
+  return {
+    Authorization: 'Bearer ' + token,
+    Accept: 'application/vnd.github+json',
+    'X-GitHub-Api-Version': '2022-11-28',
+  };
+}
+
+function graphifyGitHubJson(url, token) {
+  const response = graphifyFetch(url, {
+    followRedirects: false,
+    muteHttpExceptions: true,
+    headers: graphifyGitHubHeaders(token),
+  });
+  if (response.getResponseCode() !== 200) {
+    throw new Error('GitHub artifact discovery failed (HTTP ' + response.getResponseCode() + ').');
+  }
+  return JSON.parse(response.getContentText());
+}
+
+function graphifyBackup(artifactUrl, name, expectedSha, expectedSize, token) {
+  const folderId = '1q_DzAkxFveq1YS3nqbeOIfN958jHorqw';
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(5000)) throw new Error('A Graphify backup is already running.');
   try {
@@ -27,11 +72,7 @@ function verifyGraphifyDrivePilot() {
     const response = graphifyFetch(artifactUrl, {
       followRedirects: false,
       muteHttpExceptions: true,
-      headers: {
-        Authorization: 'Bearer ' + token,
-        Accept: 'application/vnd.github+json',
-        'X-GitHub-Api-Version': '2022-11-28',
-      },
+      headers: graphifyGitHubHeaders(token),
     });
     if (response.getResponseCode() !== 302) {
       throw new Error('GitHub artifact request failed (HTTP ' + response.getResponseCode() + ').');
@@ -48,7 +89,7 @@ function verifyGraphifyDrivePilot() {
       throw new Error('Artifact download failed (HTTP ' + download.getResponseCode() + ').');
     }
     const bytes = download.getContent();
-    if (bytes.length !== 28876 || graphifySha256(bytes) !== expectedSha) {
+    if (bytes.length !== expectedSize || graphifySha256(bytes) !== expectedSha) {
       throw new Error('Downloaded artifact does not match GitHub size and SHA-256.');
     }
 
