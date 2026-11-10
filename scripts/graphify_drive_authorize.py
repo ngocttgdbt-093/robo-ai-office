@@ -25,6 +25,22 @@ def google_json(url, *, form=None, token=None):
         return json.load(response)
 
 
+def diagnostic(stage, error):
+    if isinstance(error, urllib.error.HTTPError):
+        code = ""
+        if stage == "OAuth token exchange":
+            try:
+                candidate = json.loads(error.read(4096)).get("error")
+                if candidate in ("invalid_client", "invalid_grant", "unauthorized_client", "invalid_request", "invalid_scope"):
+                    code = f", {candidate}"
+            except (OSError, ValueError, AttributeError):
+                pass
+        return f"{stage} failed (HTTP {error.code}{code})."
+    if isinstance(error, OSError):
+        return f"{stage} failed (network or TLS error)."
+    return f"{stage} failed (unexpected response)."
+
+
 def can_add_children(token):
     url = f"https://www.googleapis.com/drive/v3/files/{FOLDER}?fields=mimeType,capabilities(canAddChildren)"
     try:
@@ -46,6 +62,7 @@ def authorize(client_id, client_secret, picker_key):
     redirect_uri = ORIGIN + "/callback"
     token_data = {}
     verified = False
+    failed = False
 
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *args):
@@ -60,7 +77,7 @@ def authorize(client_id, client_secret, picker_key):
             self.wfile.write(html.encode())
 
         def do_GET(self):
-            nonlocal verified
+            nonlocal verified, failed
             if self.headers.get("Host") != "127.0.0.1:8765":
                 self.page("Invalid host.", 400)
                 return
@@ -77,17 +94,25 @@ def authorize(client_id, client_secret, picker_key):
                         "redirect_uri": redirect_uri, "grant_type": "authorization_code",
                         "code_verifier": verifier,
                     }))
+                except (OSError, ValueError, KeyError) as error:
+                    failed = True
+                    self.page(diagnostic("OAuth token exchange", error), 400)
+                    return
+                try:
                     if not token_data.get("refresh_token") or token_data.get("scope") != SCOPE:
+                        failed = True
                         self.page("No refresh token or unexpected permissions.", 400)
                         return
                     verified = can_add_children(token_data["access_token"])
-                except (OSError, ValueError, KeyError):
-                    self.page("Google authorization could not be verified.", 400)
+                except (OSError, ValueError, KeyError) as error:
+                    failed = True
+                    self.page(diagnostic("Drive folder check", error), 400)
                     return
                 if verified:
                     self.page("Backup folder verified. Return to the terminal.")
                     return
                 if not picker_key:
+                    failed = True
                     self.page("Folder access requires Google Picker. Restart with a Picker API key.", 400)
                     return
                 self.send_response(303)
@@ -138,7 +163,7 @@ function loadPicker() {
         if not webbrowser.open(url):
             print(url)
         deadline = time.monotonic() + 300
-        while not verified and time.monotonic() < deadline:
+        while not (verified or failed) and time.monotonic() < deadline:
             server.handle_request()
     return token_data.get("refresh_token") if verified else None
 
