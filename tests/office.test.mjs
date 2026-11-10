@@ -13,44 +13,38 @@ class Element {
   replaceChildren(...children) { this.children = children; }
 }
 
-test('all nine robots appear immediately and route controls highlight without closing any zone', () => {
-  const elements = new Map();
-  const get = id => {
-    if (!elements.has(id)) elements.set(id, new Element());
-    return elements.get(id);
-  };
-  const source = readFileSync(new URL('../office.js', import.meta.url), 'utf8').split('const formatter')[0];
-  runInNewContext(source, { document: { getElementById: get, createElement: () => new Element(), createElementNS: () => new Element() } });
-  const robots = () => get('rooms').children.flatMap(zone => zone.children.filter(child => child.attributes.class === 'robot'));
-  assert.equal(robots().length, 9);
-  const arrows = get('flows').children;
-  assert.ok(arrows.length > 3);
-  assert.ok(arrows.every(arrow => arrow.children[0].attributes['marker-end']));
+test('all nine robots remain selectable on a fixed map without simulated routes', () => {
+  const { get } = office();
+  assert.equal(get('rooms').children.length, 9);
   get('nav').children[3].onclick();
   assert.equal(get('room-title').textContent, 'Công nghệ');
-  assert.ok(arrows.some(arrow => arrow.classes.has('is-related')));
-  assert.ok(arrows.some(arrow => arrow.classes.has('is-muted')));
-  assert.equal(robots().length, 9);
-  get('toggle-flows').onclick();
-  assert.equal(get('flows').attributes.visibility, 'hidden');
-  assert.equal(get('toggle-flows').attributes['aria-pressed'], false);
+  get('overview').onclick();
+  assert.equal(get('room-title').textContent, 'Toàn cảnh văn phòng');
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  assert.doesNotMatch(html, /id="(?:wall-sample|wall-sample-routes|toggle-flows|flows|zoom-in|rotate-left|mirror-view|reset-view)"/);
 });
 
-test('camera zooms, rotates, mirrors and resets', () => {
+function office() {
   const elements = new Map();
   const get = id => {
     if (!elements.has(id)) elements.set(id, new Element());
     return elements.get(id);
   };
   const source = readFileSync(new URL('../office.js', import.meta.url), 'utf8').split('const formatter')[0];
-  runInNewContext(source, { document: { getElementById: get, createElement: () => new Element(), createElementNS: () => new Element() } });
-  get('zoom-in').onclick();
-  assert.match(get('camera').attributes.transform, /scale\(1\.2 1\.2\)/);
-  get('rotate-right').onclick();
-  get('mirror-view').onclick();
-  assert.match(get('camera').attributes.transform, /rotate\(90\) scale\(-[0-9.]+ [0-9.]+\)/);
-  get('reset-view').onclick();
-  assert.match(get('camera').attributes.transform, /rotate\(0\) scale\(1 1\)/);
+  const context = { document: { getElementById: get, createElement: () => new Element(), createElementNS: () => new Element() } };
+  runInNewContext(source, context);
+  return { get, evaluate: code => runInNewContext(code, context) };
+}
+
+test('Dashboard Work takes priority over office CI and an unnamed task is marked explicitly', () => {
+  const { get, evaluate } = office();
+  evaluate(`ciRun = {name:'Office CI',status:'in_progress'};
+    paintWorkScreen({phase:'implementation',status:'running',agent:'Codex',project:'pti093db'}, true)`);
+  assert.equal(get('project-led').textContent, '07-Dashboard số liệu GĐBT 093');
+  evaluate("paintWorkScreen({phase:'implementation',status:'running',agent:'Codex',title:'Sửa giao diện'}, true)");
+  assert.equal(get('project-led').textContent, 'CHƯA CÓ TÊN DỰ ÁN');
+  evaluate('paintWorkScreen(null)');
+  assert.equal(get('project-led').textContent, 'ĐANG CHỜ DỰ ÁN');
 });
 
 test('central screen switches between coding and testing from real phase status', () => {
@@ -87,46 +81,6 @@ test('trading floor has a front director desk, ten meeting seats and greenery', 
   assert.ok(get('plants').children.length >= 4);
   runInNewContext("paintWorkScreen({phase:'implementation',status:'running',agent:'Codex',title:'Task',project:'ROBO AI OFFICE'}, true)", context);
   assert.equal(get('project-led').textContent, 'ROBO AI OFFICE');
-});
-
-test('floor handles wheel zoom, left drag, right drag and two-finger gestures', () => {
-  const elements = new Map();
-  const handlers = new Map();
-  const get = id => {
-    if (!elements.has(id)) elements.set(id, new Element());
-    return elements.get(id);
-  };
-  Object.assign(get('scene'), {
-    addEventListener: (name, fn) => handlers.set(name, fn),
-    getBoundingClientRect: () => ({left:0,top:0,width:900}),
-    setPointerCapture() {},
-  });
-  const source = readFileSync(new URL('../office.js', import.meta.url), 'utf8');
-  const gestures = source.split('projects();')[1].split('let workRequest')[0];
-  runInNewContext(source.split('const formatter')[0] + gestures, {
-    document: { getElementById: get, createElement: () => new Element(), createElementNS: () => new Element() },
-    setTimeout,
-  });
-  const event = (name, args) => handlers.get(name)({ preventDefault() {}, ...args });
-  const camera = () => get('camera').attributes.transform;
-  event('wheel', { deltaY:-120, deltaMode:0, clientX:450, clientY:225 });
-  assert.ok(parseInt(get('view-level').textContent) > 100);
-  get('reset-view').onclick();
-  const pointer = (name,id,x,y,button=0,type='mouse') => event('pointer'+name,{pointerId:id,clientX:x,clientY:y,button,pointerType:type,isPrimary:id===1});
-  pointer('down',1,450,225);
-  pointer('move',1,475,245);
-  pointer('up',1,475,245);
-  assert.match(camera(), /^translate\(475 245\)/);
-  pointer('down',1,450,225,2);
-  pointer('move',1,515,225,2);
-  pointer('up',1,515,225,2);
-  assert.doesNotMatch(camera(), /rotate\(0\)/);
-  get('reset-view').onclick();
-  pointer('down',1,400,225,0,'touch');
-  pointer('down',2,500,225,0,'touch');
-  pointer('move',2,540,265,0,'touch');
-  assert.ok(parseInt(get('view-level').textContent) > 100);
-  assert.doesNotMatch(camera(), /rotate\(0\)/);
 });
 
 test('tracking OCR shows a clearly inactive LED until a live event arrives', () => {
@@ -190,11 +144,11 @@ test('a real failed CI run remains on the wall without implying Work is running'
   runInNewContext(`ciRun = {name:'OpenMausBot bridge CI', status:'completed', conclusion:'failure', source:'render', updated:'2026-11-09T18:15:12Z', url:'https://github.com/run'};
     paintWorkScreen(null);
     paintWallFlow([]);`, context);
-  assert.equal(get('project-led').textContent, 'ROBO AI OFFICE');
+  assert.equal(get('project-led').textContent, 'ĐANG CHỜ DỰ ÁN');
   assert.equal(get('project-led').attributes['data-active'], false);
   assert.equal(get('screen-heading').textContent, 'Thất bại');
-  assert.equal(get('wall-live-routes').children.length, 1);
-  assert.match(get('wall-flow-status').textContent, /GitHub Actions → Văn phòng.*Thất bại/);
+  assert.equal(get('wall-live-routes').children.length, 0);
+  assert.match(get('wall-flow-status').textContent, /Chưa có tác vụ Work/);
 });
 
 test('only working stations animate and queued CI does not simulate coding', () => {
@@ -208,10 +162,27 @@ test('only working stations animate and queued CI does not simulate coding', () 
   runInNewContext(source, context);
   runInNewContext("paintWallFlow([{status:'running',phase:'implementation',updated:new Date(1000).toISOString()}], 1500)", context);
   assert.equal(get('wall-station-implementation').attributes['data-activity'], 'code');
+  assert.equal(get('wall-station-implementation').attributes['data-working'], true);
   assert.equal(get('wall-station-planning').attributes['data-activity'], 'idle');
   runInNewContext("ciRun = {status:'queued',name:'CI'}; paintWallFlow([])", context);
   assert.equal(get('wall-station-verification').attributes['data-activity'], 'waiting');
+  assert.equal(get('wall-station-verification').attributes['data-working'], false);
   assert.equal(get('wall-station-implementation').attributes['data-activity'], 'idle');
   runInNewContext("ciRun = {status:'completed',conclusion:'failure',name:'CI'}; paintWallFlow([])", context);
   assert.equal(get('wall-station-verification').attributes['data-activity'], 'idle');
+});
+
+test('only overflowing LED titles scroll', () => {
+  const { get, evaluate } = office();
+  const viewport = get('project-led-viewport');
+  viewport.clientWidth = 140;
+  const properties = {};
+  viewport.style = { setProperty: (key, value) => { properties[key] = value; } };
+  get('project-led').scrollWidth = 210;
+  evaluate('fitLed()');
+  assert.ok(viewport.classes.has('is-overflowing'));
+  assert.equal(properties['--led-start'], '140px');
+  get('project-led').scrollWidth = 130;
+  evaluate('fitLed()');
+  assert.ok(!viewport.classes.has('is-overflowing'));
 });
