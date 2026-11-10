@@ -28,7 +28,7 @@ main{max-width:1560px;margin:auto;padding:clamp(14px,3vw,40px)}.intro{margin-bot
 .trading-stage .screen-top{background:#143546}.trading-stage .screen-body{min-height:64px}.trading-stage svg{border-top:0}
 .director-zone .tile{stroke:#edb777;stroke-width:2}.meeting-zone .tile{stroke:#a6b7ec}.meeting-glass{stroke:#9dc8e0;stroke-width:1}#plants{pointer-events:none}
 
-.work-project{margin-top:12px;padding:12px;border:1px solid var(--line);border-radius:12px}.work-project .form-row{flex-wrap:wrap}.project-open{display:inline-flex;align-items:center;min-height:42px;padding:0 10px;border-radius:9px;border:1px solid #385b6d;font-size:.82rem;text-decoration:none}
+.work-project{margin-top:12px;padding:12px;border:1px solid var(--line);border-radius:12px}
 .wall-scene{position:relative;isolation:isolate;container-type:inline-size;aspect-ratio:1672/941;overflow:hidden;background:#081522}
 .wall-art{display:block;width:100%;height:100%;object-fit:contain}
 .wall-scene .project-ticker,.wall-scene .work-screen{position:absolute;left:22.1%;width:54.9%;margin:0;overflow:hidden}

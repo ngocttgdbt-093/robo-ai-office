@@ -178,15 +178,28 @@ if (typeof ResizeObserver === 'function') {
   ledObserver.observe(byId('project-led-viewport'));
   ledObserver.observe(byId('project-led'));
 }
-const ocrProject = 'Dự án 03 — OCR giấy tờ TBTN/YCBT';
-let trackedProject = null;
-let ocrSignalUnavailable = false;
-byId('track-ocr').onclick = () => {
-  trackedProject = trackedProject ? null : ocrProject;
-  byId('track-ocr').setAttribute('aria-pressed', Boolean(trackedProject));
-  paintWorkScreen(screenTask, screenLive);
-  paintWallFlow(wallTasks, Date.now(), wallConnected);
-};
+const projectPicker = byId('led-project-picker');
+let workSignalUnavailable = false;
+function paintProjectPicker(tasks) {
+  const names = [...new Set(tasks.filter(task => task.project).map(task => projectName(task.project)))];
+  const choices = ['', ...names];
+  const selection = projectPicker.value;
+  if (choices.length !== projectPicker.options?.length ||
+      choices.some((name, index) => name !== projectPicker.options[index].value)) {
+    projectPicker.replaceChildren(...choices.map(name => {
+      const option = document.createElement('option');
+      option.value = name;
+      option.textContent = name || 'Tự động theo tác vụ đang chạy';
+      return option;
+    }));
+    projectPicker.value = names.includes(selection) ? selection : '';
+  }
+  projectPicker.disabled = !names.length;
+  byId('led-picker-note').textContent = names.length
+    ? 'Dự án đang chạy được ưu tiên. Lựa chọn thủ công chỉ hiện khi LED đang rảnh.'
+    : 'Chưa nhận được tín hiệu Work có tên dự án.';
+}
+projectPicker.onchange = () => paintWorkScreen(screenTask, screenLive);
 
 byId('wall-focus').onclick = () => {
   const wall = byId('wall-scene');
@@ -202,15 +215,14 @@ const screenModes = {
   verification: { title:'Đang kiểm thử', lines:['Đã nhận tín hiệu kiểm thử', 'Đang chờ bằng chứng kết quả'] },
 };
 function paintWorkScreen(task, live = false) {
-  const ci = !task && !serverRunning && !trackedProject ? ciRun : null;
+  const ci = !task && !serverRunning ? ciRun : null;
   const active = live || serverRunning;
-  const project = active ? projectName(live ? task.project : serverRepo) : trackedProject ?? 'ĐANG CHỜ DỰ ÁN';
-  const tracking = !active && trackedProject;
+  const tracking = !active && projectPicker.value;
+  const project = active ? projectName(live ? task.project : serverRepo) : tracking || 'ĐANG CHỜ DỰ ÁN';
   if (byId('project-led').textContent !== project) byId('project-led').textContent = project;
   byId('project-led-caption').textContent = tracking
-    ? ocrSignalUnavailable ? 'ĐANG XEM · MẤT KẾT NỐI' : 'ĐANG XEM · CHƯA CÓ TÍN HIỆU'
+    ? workSignalUnavailable ? 'ĐANG XEM · MẤT KẾT NỐI' : 'ĐANG XEM · CHẾ ĐỘ CHỜ'
     : active ? 'DỰ ÁN ĐANG CHẠY' : 'VĂN PHÒNG ĐIỀU HÀNH';
-  if (tracking) task = null;
   byId('project-led').setAttribute('data-active', active);
   const mode = live ? screenModes[task.phase] : null;
   const outcome = {completed:'Hoàn tất', failed:'Gặp lỗi', running:'Chưa có cập nhật mới'};
@@ -266,7 +278,7 @@ function paintWallFlow(tasks, now = Date.now(), connected = true) {
     transfers.set(task.previous + ':' + task.phase, [task.previous, task.phase]);
   }
   const liveRoutes = byId('wall-live-routes');
-  const ci = !active.length && !trackedProject && !serverRunning && ciActive(ciRun) ? ciRun : null;
+  const ci = !active.length && !serverRunning && ciActive(ciRun) ? ciRun : null;
   const ciRunning = ci?.status === 'in_progress';
   const signature = [...transfers.keys()].join('|') + (ci ? ':ci:' + ci.status : '');
   if (liveRoutes.flowSignature !== signature) {
@@ -439,9 +451,8 @@ async function refreshWork() {
       return row;
     }));
     const isLive = task => task.status === 'running' && now - Date.parse(task.updated) < 10 * 60_000;
-    const ocrRunning = tasks.some(task => task.project === ocrProject && isLive(task));
-    ocrSignalUnavailable = false;
-    byId('ocr-signal').textContent = ocrRunning ? 'Đã nhận tín hiệu đang chạy từ Work.' : 'Chưa có tín hiệu đang chạy từ phiên Work của dự án.';
+    workSignalUnavailable = false;
+    paintProjectPicker(tasks);
     const liveTasks = tasks.filter(isLive);
     const recent = liveTasks[0];
     const parallel = liveTasks.filter(task => task !== recent).slice(0,3);
@@ -462,12 +473,13 @@ async function refreshWork() {
     byId('live-flows').replaceChildren();
     screenTask = null;
     screenLive = false;
-    ocrSignalUnavailable = true;
+    workSignalUnavailable = true;
     paintWallFlow([], Date.now(), false);
     const offline = document.createElement('li');
     offline.textContent = 'Tạm mất kết nối';
     byId('screen-queue').replaceChildren(offline);
-    byId('ocr-signal').textContent = 'Tạm thời không đọc được tín hiệu Work.';
+    projectPicker.disabled = true;
+    byId('led-picker-note').textContent = 'Tạm mất kết nối. Danh sách có thể đã cũ.';
     paintWorkScreen();
     byId('work-status').textContent = 'Tạm mất kết nối. Lịch sử bên dưới có thể đã cũ.';
     paintRooms();

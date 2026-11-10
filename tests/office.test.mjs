@@ -83,22 +83,29 @@ test('trading floor has a front director desk, ten meeting seats and greenery', 
   assert.equal(get('project-led').textContent, 'ROBO AI OFFICE');
 });
 
-test('tracking OCR shows a clearly inactive LED until a live event arrives', () => {
-  const elements = new Map();
-  const get = id => {
-    if (!elements.has(id)) elements.set(id, new Element());
-    return elements.get(id);
-  };
-  const source = readFileSync(new URL('../office.js', import.meta.url), 'utf8').split('const formatter')[0];
-  const context = { document: { getElementById: get, createElement: () => new Element(), createElementNS: () => new Element() } };
-  runInNewContext(source, context);
-  get('track-ocr').onclick();
+test('the LED picker lists observed projects and live work overrides idle selection', () => {
+  const { get, evaluate } = office();
+  const picker = get('led-project-picker');
+  picker.value = '';
+  evaluate(`paintProjectPicker([
+    {project:'Dự án 03 — OCR giấy tờ TBTN/YCBT'},
+    {project:'pti093db'}, {project:'ngocttgdbt-093/pti093db'}, {project:null}
+  ])`);
+  assert.equal(picker.children.length, 3);
+  assert.equal(picker.children[0].value, '');
+  assert.equal(picker.children[2].value, '07-Dashboard số liệu GĐBT 093');
+  picker.value = picker.children[1].value;
+  picker.onchange();
   assert.match(get('project-led').textContent, /Dự án 03/);
-  assert.match(get('project-led-caption').textContent, /CHƯA CÓ TÍN HIỆU/);
+  assert.match(get('project-led-caption').textContent, /ĐANG XEM/);
   assert.equal(get('project-led').attributes['data-active'], false);
-  runInNewContext("paintWorkScreen({phase:'implementation',status:'running',agent:'Codex',project:ocrProject}, true)", context);
-  assert.equal(get('project-led').attributes['data-active'], true);
-  assert.equal(get('project-led-caption').textContent, 'DỰ ÁN ĐANG CHẠY');
+  evaluate("paintWorkScreen({phase:'implementation',status:'running',agent:'Codex',project:'pti093db'}, true)");
+  assert.equal(get('project-led').textContent, '07-Dashboard số liệu GĐBT 093');
+  evaluate('paintWorkScreen(null)');
+  assert.match(get('project-led').textContent, /Dự án 03/);
+  evaluate("paintProjectPicker([{project:'pti093db'}]); paintWorkScreen(null)");
+  assert.equal(picker.value, '');
+  assert.equal(get('project-led').textContent, 'ĐANG CHỜ DỰ ÁN');
 });
 
 test('the wall uses an integrated backdrop and does not show a passing test on a running verification', () => {
