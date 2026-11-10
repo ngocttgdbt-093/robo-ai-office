@@ -7,7 +7,7 @@ on:
       - 'scripts/graphify_drive_backup.py'
       - 'scripts/test_graphify_drive_backup.py'
   push:
-    branches: [main, feat/graphify-drive-backup-20261110]
+    branches: [main]
   workflow_dispatch:
     inputs:
       upload_to_drive:
@@ -55,8 +55,7 @@ jobs:
     needs: graphify
     if: >-
       github.ref == 'refs/heads/feat/graphify-drive-backup-20261110' &&
-      ((github.event_name == 'push' && vars.GRAPHIFY_DRIVE_PILOT == 'true') ||
-       (github.event_name == 'workflow_dispatch' && inputs.upload_to_drive))
+      github.event_name == 'workflow_dispatch' && inputs.upload_to_drive
     runs-on: ubuntu-latest
     timeout-minutes: 5
     environment: graphify-drive-pilot
