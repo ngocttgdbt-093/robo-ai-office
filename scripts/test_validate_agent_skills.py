@@ -43,6 +43,14 @@ class TestSkillValidator(unittest.TestCase):
         self.file.write_text(VALID.replace("Never modify OmniRoute", ""), encoding="utf-8")
         self.assertTrue(any("safety rule" in e for e in validate(self.file)))
 
+    def test_duplicate_metadata_key_with_leading_space(self):
+        duplicate = VALID.replace(
+            "description: Scoped coding assistant",
+            "description: Scoped coding assistant\n description: Duplicate",
+        )
+        self.file.write_text(duplicate, encoding="utf-8")
+        self.assertEqual(validate(self.file), ["Duplicate metadata key: description"])
+
     def test_empty_description(self):
         self.file.write_text(VALID.replace("description: Scoped coding assistant", "description:"), encoding="utf-8")
         self.assertTrue(any("description" in e for e in validate(self.file)))

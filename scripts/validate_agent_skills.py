@@ -27,9 +27,10 @@ def validate(skill_file: Path) -> list[str]:
             errors.append(f"Malformed frontmatter line: {line}")
             continue
         key, value = line.split(":", 1)
+        key = key.strip()
         if key in metadata:
             errors.append(f"Duplicate metadata key: {key}")
-        metadata[key.strip()] = value.strip()
+        metadata[key] = value.strip()
     name = metadata.get("name", "")
     if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", name):
         errors.append("Invalid skill name")
