@@ -78,16 +78,23 @@ def upload(payload: bytes, name: str) -> dict:
     })
     with urllib.request.urlopen(req, timeout=90) as resp:
         result = json.load(resp)
-    if not result.get("id") or folder_id not in result.get("parents", []):
+    file_id = result.get("id")
+    if not isinstance(file_id, str) or not re.fullmatch(r"[A-Za-z0-9_-]+", file_id) or result.get("parents") != [folder_id]:
         raise ValueError("Google Drive returned missing file or unexpected parent")
-    return {"name": result["name"], "id": result["id"], "folder_verified": True}
+    download_url = f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media"
+    req = urllib.request.Request(download_url, headers={"Authorization": f"Bearer {token}"})
+    with urllib.request.urlopen(req, timeout=90) as resp:
+        restored = resp.read(len(payload) + 1)
+    if hashlib.sha256(restored).digest() != hashlib.sha256(payload).digest():
+        raise ValueError("Downloaded ZIP failed SHA256 verification")
+    return {"name": result["name"], "id": file_id, "folder_verified": True}
 
 def main():
     sha = required_env("GITHUB_SHA")
     data, name = make_archive(Path("graphify-out"), sha)
     print(f"Snapshot prepared: {name}, {len(data)} bytes")
     result = upload(data, name)
-    print(f"Upload confirmed: {result['name']}, folder verified")
+    print(f"Upload confirmed: {result['name']}, folder and downloaded ZIP SHA256 verified")
     # Do not log IDs, credentials or source graph content.
 
 if __name__ == "__main__":
