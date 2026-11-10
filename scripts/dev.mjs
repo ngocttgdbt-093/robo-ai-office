@@ -15,7 +15,7 @@ const DB = { prepare(sql) {
 } };
 const portIndex = process.argv.indexOf('--port');
 const port = Number(portIndex >= 0 ? process.argv[portIndex + 1] : process.env.PORT || 3000);
-createServer(async (incoming, outgoing) => {
+const server = createServer(async (incoming, outgoing) => {
   try {
     const origin = 'http://' + incoming.headers.host;
     const headers = new Headers(incoming.headers);
@@ -31,4 +31,4 @@ createServer(async (incoming, outgoing) => {
     console.error(error);
     outgoing.writeHead(500).end();
   }
-}).listen(port, '127.0.0.1', () => console.log('Office preview listening on ' + port));
+}).listen(port, '127.0.0.1', () => console.log('Office preview listening on ' + server.address().port));

@@ -30,3 +30,17 @@ A failed test stays visible in the recent timeline while the task continues.
 The dashboard stops showing the run as active if its heartbeat goes stale.
 Only runs started through this publisher are tracked. The publisher does not
 forward raw prompts, replies, commands, stdout or credentials to the dashboard.
+
+### Local live acceptance
+
+From this checkout, with Node.js 24+ and the Codex CLI signed in:
+
+```sh
+node scripts/verify-codex-live.mjs
+```
+
+Open the printed local monitor URL before pressing Enter. The script creates
+a loopback-only monitor, then starts a read-only Codex task that requests a
+failing test followed by a passing test. The final check reads the monitor's
+API and requires both test results in order plus a completed turn.
+The monitor uses temporary storage and closes after two minutes or on Ctrl+C.

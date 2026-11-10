@@ -39,7 +39,10 @@ async function main(title, project) {
   const env = { ...process.env };
   delete env.ROBO_WORK_BRIDGE_SECRET;
   delete env.ROBO_SITES_AUTH;
-  const child = spawn('codex', ['exec', '--json', '--ephemeral', '-'], { env, stdio: ['inherit', 'pipe', 'inherit'] });
+  const options = { env, stdio: ['inherit', 'pipe', 'inherit'] };
+  const child = process.platform === 'win32'
+    ? spawn('cmd.exe', ['/d', '/c', 'codex exec --json --ephemeral -'], options)
+    : spawn('codex', ['exec', '--json', '--ephemeral', '-'], options);
   const childDone = new Promise(resolve => {
     child.once('error', () => resolve(1));
     child.once('close', code => resolve(code ?? 1));
