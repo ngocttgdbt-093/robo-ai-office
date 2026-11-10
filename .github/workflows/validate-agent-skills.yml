@@ -1,0 +1,24 @@
+name: Validate Agent Skills
+
+on:
+  pull_request:
+    paths:
+      - '.agents/skills/**'
+      - 'scripts/validate_agent_skills.py'
+      - 'scripts/test_validate_agent_skills.py'
+      - '.github/workflows/validate-agent-skills.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-skills:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run validator regression tests
+        run: python3 -m unittest discover -s scripts -p 'test_validate_agent_skills.py' -v
+      - name: Validate committed ROBO Coding Skill
+        run: python3 scripts/validate_agent_skills.py .agents/skills/robo-coding/SKILL.md
