@@ -25,11 +25,9 @@ function block(parent, x, y, w, d, base, top, colors, extra) {
   face(parent, [[x+w,y,base],[x+w,y+d,base],[x+w,y+d,top],[x+w,y,top]], colors[2]);
   return face(parent, [[x,y,top],[x+w,y,top],[x+w,y+d,top],[x,y+d,top]], colors[0], extra);
 }
-const labels = [];
 const label = (parent, text, [x,y], className = '') => {
   const node = svg('text', { x, y, 'text-anchor': 'middle', class:className }, parent);
   node.textContent = text;
-  labels.push({node,x,y});
   return node;
 };
 block(byId('floor'), -15, -15, 362, 349, -16, -3, ['#1a384e','#0a1c2c','#102c40'], {stroke:'#4a788c'});
@@ -52,12 +50,7 @@ for (const [x,y] of [[-5,40],[47,-7],[126,330],[3,321],[335,194],[337,295]]) {
     svg('ellipse',{cx:lx,cy:ly,rx:4,ry:8,fill:color,transform:`rotate(${angle} ${lx} ${ly})`},plant);
   }
 }
-const routes = [
-  [0, 1, 'command'], [1, 2, 'command'], [1, 3, 'command'], [1, 4, 'command'],
-  [2, 5, 'activity'], [3, 4, 'activity'], [4, 5, 'activity'],
-  [6, 7, 'activity'], [7, 8, 'activity'], [5, 8, 'activity'],
-];
-function drawRoute(from, to, kind, parent) {
+function drawHandoff(from, to, parent) {
   const [fx, fy] = position(from);
   const [tx, ty] = position(to);
   const dx = Math.sign(tx - fx), dy = Math.sign(ty - fy);
@@ -65,17 +58,14 @@ function drawRoute(from, to, kind, parent) {
   const end = point(tx + 48 - 34 * dx, ty + 48 - 34 * dy, 3);
   const bend = [(start[0] + end[0]) / 2, (start[1] + end[1]) / 2 - 11];
   const d = `M${start.join(' ')} Q${bend.join(' ')} ${end.join(' ')}`;
-  const group = svg('g', { class: `flow ${kind}` }, parent);
-  svg('path', {d, class:'route-line', 'marker-end':`url(#${kind}-arrow)`}, group);
+  const group = svg('g', { class:'flow work' }, parent);
+  svg('path', {d, class:'route-line', 'marker-end':'url(#work-arrow)'}, group);
   svg('path', {d, class:'route-pulse'}, group);
-  return { group, from, to };
 }
-const flows = routes.map(([from,to,kind]) => drawRoute(from,to,kind,byId('flows')));
 const phaseZones = { planning: 1, implementation: 3, verification: 8 };
 const phaseLabels = { planning: 'AI Manager', implementation: 'Công nghệ', verification: 'Kiểm soát' };
 const activeWork = new Map();
 let workByZone = new Map();
-let showFlows = true;
 let serverRunning = false;
 let serverRepo = null;
 let screenTask = null;
@@ -120,6 +110,7 @@ rooms.forEach(([name, description, color], i) => {
   svg('rect',{x:cx-10,y:cy-5,width:20,height:18,rx:7,fill:'url(#silver)'},robot);
   svg('rect',{x:cx-15,y:cy-22,width:30,height:20,rx:8,fill:'url(#silver)',stroke:'#bcecff'},robot);
   svg('rect',{x:cx-10,y:cy-17,width:20,height:9,rx:4,fill:'#123044'},robot);
+  for (const offset of [-15,15]) svg('circle',{cx:cx+offset,cy:cy-12,r:2.6,class:'map-ear'},robot);
   for (const offset of [-4,4]) svg('circle',{cx:cx+offset,cy:cy-12,r:1.8,fill:'#78efff'},robot);
   const [lx,ly] = point(x+82,y+67,1);
   svg('circle',{cx:lx,cy:ly,r:4,class:'light',fill:'#a4b7c1'},group);
@@ -145,17 +136,6 @@ function paintRooms() {
     agentTag.textContent = worker ? worker.agent + (worker.skills.length ? ' · ' + worker.skills.length + ' skill' : '') : i === 3 && serverRunning ? 'GitHub Agent' : '';
     for (const element of [group, button]) element.setAttribute('aria-pressed', i === selected);
   });
-  byId('flows').setAttribute('visibility', showFlows ? 'visible' : 'hidden');
-  byId('toggle-flows').setAttribute('aria-pressed', showFlows);
-  const related = flows.filter(({group, from, to}) => {
-    const touches = selected === from || selected === to;
-    group.classList.toggle('is-related', touches);
-    group.classList.toggle('is-muted', selected >= 0 && !touches);
-    return touches;
-  });
-  byId('route-description').textContent = showFlows && selected >= 0
-    ? related.map(({from, to}) => rooms[from][0] + ' → ' + rooms[to][0]).join(' · ')
-    : '';
   const workers = workByZone.get(selected) ?? [];
   byId('zone-work').textContent = workers.map(task =>
     task.agent + (task.skills.length ? ' · ' + task.skills.join(', ') : '')).join(' | ');
@@ -164,50 +144,10 @@ function selectRoom(i) {
   selected = i;
   paintRooms();
   byId('room-title').textContent = rooms[i]?.[0] ?? 'Toàn cảnh văn phòng';
-  byId('room-description').textContent = controls[i]?.description ?? 'Chọn một khu để xem chức năng và làm nổi bật các tuyến liên quan.';
+  byId('room-description').textContent = controls[i]?.description ?? 'Chọn một khu để xem chức năng và trạng thái.';
 }
-byId('toggle-flows').onclick = () => {
-  showFlows = !showFlows;
-  paintRooms();
-};
 byId('overview').onclick = () => selectRoom(-1);
 selectRoom(-1);
-
-let zoom = 100;
-let angle = 0;
-let mirrored = false;
-let panX = 0;
-let panY = 0;
-function paintCamera() {
-  const radians = angle * Math.PI / 180;
-  const width = 820 * Math.abs(Math.cos(radians)) + 400 * Math.abs(Math.sin(radians));
-  const height = 820 * Math.abs(Math.sin(radians)) + 400 * Math.abs(Math.cos(radians));
-  const fit = Math.min(1, 900 / width, 445 / height);
-  const scale = zoom / 100 * fit;
-  const direction = mirrored ? -1 : 1;
-  byId('camera').setAttribute('transform', `translate(${450 + panX} ${225 + panY}) rotate(${angle}) scale(${scale * direction} ${scale}) translate(-450 -225)`);
-  for (const {node,x,y} of labels) {
-    node.setAttribute('transform', `translate(${x} ${y}) scale(${direction} 1) rotate(${-angle}) translate(${-x} ${-y})`);
-  }
-  byId('view-level').textContent = Math.round(zoom) + '%';
-  byId('zoom-in').disabled = zoom >= 180;
-  byId('zoom-out').disabled = zoom <= 60;
-  byId('mirror-view').setAttribute('aria-pressed', mirrored);
-}
-function changeView(nextZoom, nextAngle, nextMirror) {
-  zoom = nextZoom;
-  angle = (nextAngle + 360) % 360;
-  mirrored = nextMirror;
-  panX = panY = 0;
-  paintCamera();
-}
-byId('zoom-in').onclick = () => changeView(Math.min(180, zoom + 20), angle, mirrored);
-byId('zoom-out').onclick = () => changeView(Math.max(60, zoom - 20), angle, mirrored);
-byId('rotate-left').onclick = () => changeView(zoom, angle - 90, mirrored);
-byId('rotate-right').onclick = () => changeView(zoom, angle + 90, mirrored);
-byId('mirror-view').onclick = () => changeView(zoom, angle, !mirrored);
-byId('reset-view').onclick = () => changeView(100, 0, false);
-paintCamera();
 
 let ciRun = null;
 const ciActive = run => Boolean(run && ['in_progress','queued','requested','waiting','pending'].includes(run.status));
@@ -215,6 +155,28 @@ function ciLabel(run) {
   const state = {in_progress:'Đang chạy',queued:'Đang xếp hàng',requested:'Đã yêu cầu',waiting:'Đang chờ',pending:'Đang chờ',completed:'Đã kết thúc'};
   const outcome = {success:'Thành công',failure:'Thất bại',cancelled:'Đã hủy',timed_out:'Hết thời gian',skipped:'Đã bỏ qua',action_required:'Cần xử lý'};
   return outcome[run.conclusion] ?? state[run.status] ?? run.status;
+}
+const projectNames = { pti093db: '07-Dashboard số liệu GĐBT 093' };
+function projectName(value) {
+  if (!value) return 'CHƯA CÓ TÊN DỰ ÁN';
+  const repo = value.toLowerCase().replace(/^ngocttgdbt-093\//, '');
+  return Object.hasOwn(projectNames, repo) ? projectNames[repo] : value;
+}
+function fitLed() {
+  const viewport = byId('project-led-viewport');
+  const text = byId('project-led');
+  const width = viewport.clientWidth;
+  const length = text.scrollWidth;
+  viewport.classList.toggle('is-overflowing', width > 0 && length > width);
+  if (width > 0 && length > width) {
+    viewport.style.setProperty('--led-start', width + 'px');
+    viewport.style.setProperty('--led-time', Math.max(6, (width + length) / 34) + 's');
+  }
+}
+if (typeof ResizeObserver === 'function') {
+  const ledObserver = new ResizeObserver(fitLed);
+  ledObserver.observe(byId('project-led-viewport'));
+  ledObserver.observe(byId('project-led'));
 }
 const ocrProject = 'Dự án 03 — OCR giấy tờ TBTN/YCBT';
 let trackedProject = null;
@@ -240,14 +202,14 @@ const screenModes = {
   verification: { title:'Đang kiểm thử', lines:['Đã nhận tín hiệu kiểm thử', 'Đang chờ bằng chứng kết quả'] },
 };
 function paintWorkScreen(task, live = false) {
-  const ci = !live && !serverRunning && (!trackedProject || ciActive(ciRun)) ? ciRun : null;
-  const project = live ? task.project : serverRunning ? serverRepo : ci ? 'ROBO AI OFFICE' : null;
-  const active = live || serverRunning || ciActive(ci);
+  const ci = !task && !serverRunning && !trackedProject ? ciRun : null;
+  const active = live || serverRunning;
+  const project = active ? projectName(live ? task.project : serverRepo) : trackedProject ?? 'ĐANG CHỜ DỰ ÁN';
   const tracking = !active && trackedProject;
-  byId('project-led').textContent = project ?? (live ? task.title : trackedProject ?? 'ĐANG CHỜ DỰ ÁN');
+  if (byId('project-led').textContent !== project) byId('project-led').textContent = project;
   byId('project-led-caption').textContent = tracking
     ? ocrSignalUnavailable ? 'ĐANG XEM · MẤT KẾT NỐI' : 'ĐANG XEM · CHƯA CÓ TÍN HIỆU'
-    : ci ? 'GITHUB · ' + ciLabel(ci).toLocaleUpperCase('vi') : active ? 'DỰ ÁN ĐANG CHẠY' : 'VĂN PHÒNG ĐIỀU HÀNH';
+    : active ? 'DỰ ÁN ĐANG CHẠY' : 'VĂN PHÒNG ĐIỀU HÀNH';
   if (tracking) task = null;
   byId('project-led').setAttribute('data-active', active);
   const mode = live ? screenModes[task.phase] : null;
@@ -293,7 +255,6 @@ function wallRoute(from, to, parent) {
 }
 let wallTasks = [];
 let wallConnected = false;
-let wallSample = false;
 function paintWallFlow(tasks, now = Date.now(), connected = true) {
   wallTasks = tasks;
   wallConnected = connected;
@@ -305,40 +266,30 @@ function paintWallFlow(tasks, now = Date.now(), connected = true) {
     transfers.set(task.previous + ':' + task.phase, [task.previous, task.phase]);
   }
   const liveRoutes = byId('wall-live-routes');
-  const ci = !active.length && !trackedProject ? ciRun : null;
+  const ci = !active.length && !trackedProject && !serverRunning && ciActive(ciRun) ? ciRun : null;
+  const ciRunning = ci?.status === 'in_progress';
   const signature = [...transfers.keys()].join('|') + (ci ? ':ci:' + ci.status : '');
   if (liveRoutes.flowSignature !== signature) {
     liveRoutes.flowSignature = signature;
     liveRoutes.replaceChildren();
     for (const [from,to] of transfers.values()) wallRoute(from,to,liveRoutes);
-    if (ci) {
-      wallRoute('verification','planning',liveRoutes);
-      liveRoutes.lastChild?.setAttribute('class', ciActive(ci) ? 'wall-ci-route' : 'wall-ci-route wall-ci-result');
-    }
-  }
-  const sampleRoutes = byId('wall-sample-routes');
-  const showSample = wallSample && active.length === 0 && !ciActive(ci);
-  if (sampleRoutes.showSample !== showSample) {
-    sampleRoutes.showSample = showSample;
-    sampleRoutes.replaceChildren();
-    if (showSample) {
-      wallRoute('planning','implementation',sampleRoutes);
-      wallRoute('implementation','verification',sampleRoutes);
-    }
+    if (ciRunning) wallRoute('verification','planning',liveRoutes);
   }
   for (const [phase, team] of Object.entries(wallTeams)) {
-    const running = active.some(task => task.phase === phase);
+    const running = active.some(task => task.phase === phase) || (serverRunning && phase === 'implementation');
     const receiving = [...transfers.values()].some(([,to]) => to === phase);
     const sending = [...transfers.values()].some(([from]) => from === phase);
     const workMode = {planning:'planning', implementation:'code', verification:'test'}[phase];
     const ciMode = ci && phase === 'verification' ? ci.status === 'in_progress' ? 'ci' : ciActive(ci) ? 'waiting' : null : null;
-    const stationMode = running || showSample ? workMode : ciMode ?? 'idle';
-    byId('wall-station-' + phase).setAttribute('data-activity', stationMode);
-    byId('wall-monitor-' + phase).textContent = showSample ? 'MINH HỌA' : {
+    const stationMode = running ? workMode : ciMode ?? 'idle';
+    const station = byId('wall-station-' + phase);
+    station.setAttribute('data-activity', stationMode);
+    station.setAttribute('data-working', running || (phase === 'verification' && ciRunning));
+    byId('wall-monitor-' + phase).textContent = {
       planning:'ĐIỀU PHỐI',code:'CODE · MINH HỌA',test:'KIỂM THỬ',ci:'CI ĐANG CHẠY',waiting:'CI XẾP HÀNG',idle:'',
     }[stationMode];
     if (ci && (phase === 'verification' || phase === 'planning')) {
-      byId('wall-team-' + phase).setAttribute('data-state', ciActive(ci) ? 'active' : 'sending');
+      byId('wall-team-' + phase).setAttribute('data-state', ciRunning ? 'active' : 'idle');
       byId('wall-' + phase).textContent = phase === 'verification' ? 'CI · ' + ciLabel(ci) : 'Nhận trạng thái CI';
       continue;
     }
@@ -348,19 +299,12 @@ function paintWallFlow(tasks, now = Date.now(), connected = true) {
   }
   const message = transfers.size ? [...transfers.values()].map(([from,to]) => wallTeams[from].name + ' → ' + wallTeams[to].name).join(' · ')
     : active.length ? 'Có bộ phận đang thực thi · Chưa có bàn giao mới'
-    : showSample ? 'Minh họa: Điều phối → Công nghệ → Kiểm soát'
+    : serverRunning ? 'Công nghệ đang đọc commit GitHub'
     : ci ? 'GitHub Actions → Văn phòng · ' + ciLabel(ci)
     : connected ? 'Chưa có tác vụ Work đang chạy' : 'Mất kết nối hoặc đang chờ đọc tín hiệu Work';
   const status = byId('wall-flow-status');
   if (status.textContent !== message) status.textContent = message;
 }
-byId('wall-sample').onclick = () => {
-  wallSample = !wallSample;
-  byId('wall-sample').setAttribute('aria-pressed', wallSample);
-  byId('wall-sample').textContent = wallSample ? 'Tắt minh họa' : 'Minh họa luồng';
-  paintWallFlow(wallTasks, Date.now(), wallConnected);
-};
-
 const formatter = new Intl.DateTimeFormat('vi-VN',{ dateStyle:'short', timeStyle:'short', timeZone:'Asia/Ho_Chi_Minh' });
 const date = iso => formatter.format(new Date(iso));
 async function api(path, options) {
@@ -407,6 +351,7 @@ async function history() {
     if (request !== historyRequest) return;
     serverRepo = runs.find(run => run.status === 'running')?.repo ?? null;
     serverRunning = Boolean(serverRepo);
+    paintWallFlow(wallTasks, Date.now(), wallConnected);
     paintWorkScreen(screenTask, screenLive);
     running = submitting || serverRunning;
     byId('history').replaceChildren(...runs.map(run => {
@@ -461,93 +406,6 @@ setInterval(() => { if (running && !submitting && !document.hidden) history(); }
 history();
 projects();
 
-const scene = byId('scene');
-const pointers = new Map();
-const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
-let gesture = null;
-let suppressClick = false;
-
-function resetGesture(rotate = gesture?.rotate ?? false, moved = false) {
-  const [first, second] = pointers.values();
-  gesture = first ? {
-    rotate, moved, first: { ...first }, second: second && { ...second },
-    zoom, angle, panX, panY,
-  } : null;
-}
-function moveCamera(x, y) {
-  panX = clamp(x, -410, 410);
-  panY = clamp(y, -300, 300);
-}
-function zoomAt(next, clientX, clientY) {
-  const rect = scene.getBoundingClientRect();
-  const ratio = 900 / rect.width;
-  const x = (clientX - rect.left) * ratio - 450;
-  const y = (clientY - rect.top) * ratio - 225;
-  next = clamp(next, 60, 180);
-  const change = next / zoom;
-  moveCamera(x - (x - panX) * change, y - (y - panY) * change);
-  zoom = next;
-  paintCamera();
-}
-scene.addEventListener('wheel', event => {
-  event.preventDefault();
-  const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? 450 : 1;
-  zoomAt(zoom * Math.exp(-clamp(event.deltaY * unit, -240, 240) / 450), event.clientX, event.clientY);
-}, { passive:false });
-scene.addEventListener('contextmenu', event => event.preventDefault());
-scene.addEventListener('pointerdown', event => {
-  if (pointers.size >= 2 || ![0,2].includes(event.button)) return;
-  if (pointers.size && event.pointerType !== 'touch') return;
-  pointers.set(event.pointerId, {x:event.clientX, y:event.clientY});
-  if (pointers.size === 2) {
-    for (const id of pointers.keys()) scene.setPointerCapture(id);
-    resetGesture(false, true);
-  } else {
-    resetGesture(event.button === 2 || event.shiftKey);
-  }
-});
-scene.addEventListener('pointermove', event => {
-  if (!gesture || !pointers.has(event.pointerId)) return;
-  pointers.set(event.pointerId, {x:event.clientX, y:event.clientY});
-  const [first, second] = pointers.values();
-  const dx = first.x - gesture.first.x, dy = first.y - gesture.first.y;
-  if (!gesture.moved && Math.hypot(dx,dy) < 5) return;
-  if (!gesture.moved) scene.setPointerCapture(event.pointerId);
-  gesture.moved = true;
-  const ratio = 900 / scene.getBoundingClientRect().width;
-  if (second) {
-    const a = [gesture.second.x - gesture.first.x, gesture.second.y - gesture.first.y];
-    const b = [second.x - first.x, second.y - first.y];
-    zoom = clamp(gesture.zoom * Math.hypot(...b) / Math.max(1, Math.hypot(...a)), 60, 180);
-    angle = gesture.angle + (Math.atan2(b[1],b[0]) - Math.atan2(a[1],a[0])) * 180 / Math.PI;
-    moveCamera(gesture.panX + (dx + second.x - gesture.second.x) * ratio / 2,
-      gesture.panY + (dy + second.y - gesture.second.y) * ratio / 2);
-  } else if (gesture.rotate) {
-    angle = gesture.angle + dx * 0.65;
-  } else {
-    moveCamera(gesture.panX + dx * ratio, gesture.panY + dy * ratio);
-  }
-  paintCamera();
-});
-function endGesture(event) {
-  if (!pointers.delete(event.pointerId)) return;
-  const moved = Boolean(gesture?.moved);
-  resetGesture(false, moved);
-  if (moved && event.type === 'pointerup') {
-    suppressClick = true;
-    setTimeout(() => { suppressClick = false; }, 0);
-  }
-}
-scene.addEventListener('pointerup', endGesture);
-scene.addEventListener('pointercancel', endGesture);
-scene.addEventListener('lostpointercapture', endGesture);
-scene.addEventListener('pointerleave', event => {
-  if (!gesture?.moved) endGesture(event);
-});
-scene.addEventListener('click', event => {
-  if (suppressClick) event.stopPropagation();
-}, true);
-
 let workRequest = 0;
 async function refreshWork() {
   const request = ++workRequest;
@@ -566,7 +424,7 @@ async function refreshWork() {
         const zone = phaseZones[task.phase];
         if (!activeWork.has(zone)) activeWork.set(zone, task);
         workByZone.set(zone, [...(workByZone.get(zone) ?? []), task]);
-        if (task.previous && now - Date.parse(task.phase_started ?? task.updated) < 25_000) drawRoute(phaseZones[task.previous],phaseZones[task.phase],'work',byId('live-flows'));
+        if (Object.hasOwn(phaseZones, task.previous) && task.previous !== task.phase && now - Date.parse(task.phase_started ?? task.updated) < 25_000) drawHandoff(phaseZones[task.previous], phaseZones[task.phase], byId('live-flows'));
       }
       const row = document.createElement('li');
       const title = document.createElement('strong');
@@ -585,9 +443,9 @@ async function refreshWork() {
     ocrSignalUnavailable = false;
     byId('ocr-signal').textContent = ocrRunning ? 'Đã nhận tín hiệu đang chạy từ Work.' : 'Chưa có tín hiệu đang chạy từ phiên Work của dự án.';
     const liveTasks = tasks.filter(isLive);
-    const recent = liveTasks.find(task => task.phase === 'verification') ?? liveTasks[0];
+    const recent = liveTasks[0];
     const parallel = liveTasks.filter(task => task !== recent).slice(0,3);
-    byId('screen-queue').replaceChildren(...(parallel.length ? parallel.map(task => task.project || task.title) : ['Chưa có tác vụ song song']).map(name => {
+    byId('screen-queue').replaceChildren(...(parallel.length ? parallel.map(task => task.project ? projectName(task.project) : task.title) : ['Chưa có tác vụ song song']).map(name => {
       const item = document.createElement('li');
       item.textContent = name;
       return item;
