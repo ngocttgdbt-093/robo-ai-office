@@ -1,32 +1,58 @@
 /**
- * Manual backup trial for the latest successful ROBO AI OFFICE branch artifact.
+ * Back up verified Graphify artifacts to their assigned Google Drive folders.
  * The GitHub App mints a repository-limited, Actions read-only token per run.
  */
+const GRAPHIFY_PROJECTS = Object.freeze({
+  robo: {repo: 'robo-ai-office', id: 1448917996, workflow: 413434772,
+    folder: '1q_DzAkxFveq1YS3nqbeOIfN958jHorqw', prefix: 'robo',
+    testBranch: 'feat/graphify-drive-backup-20261110'},
+  dashboard: {repo: 'pti093db', id: 1443937630, workflow: 413612305,
+    folder: '15sWtMe4aL23SvBhGmi7l2_AU-lLXHvqL', prefix: 'pti093db'},
+  ghep093: {repo: 'pti093', id: 1403350518, workflow: 413612019,
+    folder: '1slPbX7N0PNp1sAiXZTmbd78N7VM-OKj0', prefix: 'pti093'},
+  ghepPti: {repo: 'pti', id: 1416385433, workflow: 413612517,
+    folder: '113dna1FSaxLrDQuC5qodFQjo5khxrplW', prefix: 'pti'},
+});
+
 function verifyGraphifyDrivePilot() {
   const properties = PropertiesService.getScriptProperties();
-  graphifyBackupLatest(graphifyInstallationToken(), properties.getProperty('GRAPHIFY_USE_MAIN') !== 'false');
+  const project = GRAPHIFY_PROJECTS.robo;
+  graphifyBackupLatest(project, properties.getProperty('GRAPHIFY_USE_MAIN') !== 'false');
 }
 
 function verifyGraphifyGitHubApp() {
-  graphifyBackupLatest(graphifyInstallationToken(), false);
+  graphifyBackupLatest(GRAPHIFY_PROJECTS.robo, false);
 }
 
-function graphifyBackupLatest(token, scheduledSource) {
-  const branch = scheduledSource ? 'main' : 'feat/graphify-drive-backup-20261110';
+function verifyDashboard093Graphify() {
+  graphifyBackupLatest(GRAPHIFY_PROJECTS.dashboard, false);
+}
+
+function verifyGhepAnh093Graphify() {
+  graphifyBackupLatest(GRAPHIFY_PROJECTS.ghep093, false);
+}
+
+function verifyGhepAnhPtiGraphify() {
+  graphifyBackupLatest(GRAPHIFY_PROJECTS.ghepPti, false);
+}
+
+function graphifyBackupLatest(project, scheduledSource) {
+  const token = graphifyInstallationToken(project.id);
+  const branch = scheduledSource ? 'main' : (project.testBranch || 'test/graphify-drive-20261111');
   const event = scheduledSource ? 'schedule' : 'push';
-  const api = 'https://api.github.com/repos/ngocttgdbt-093/robo-ai-office/actions';
+  const api = 'https://api.github.com/repos/ngocttgdbt-093/' + project.repo + '/actions';
   const runs = graphifyGitHubJson(
-    api + '/workflows/413434772/runs?status=success&per_page=1&event=' + event + '&branch=' + encodeURIComponent(branch),
+    api + '/workflows/' + project.workflow + '/runs?status=success&per_page=1&event=' + event + '&branch=' + encodeURIComponent(branch),
     token
   );
   const run = runs.workflow_runs?.[0];
   if (run?.head_branch !== branch || run.conclusion !== 'success' || run.event !== event ||
-      run.head_repository?.id !== 1448917996 || !Number.isSafeInteger(run.id) ||
+      run.head_repository?.id !== project.id || !Number.isSafeInteger(run.id) ||
       !/^[a-f0-9]{40}$/.test(run.head_sha)) {
     throw new Error('No successful Graphify run found on the approved branch.');
   }
   const artifacts = graphifyGitHubJson(api + '/runs/' + run.id + '/artifacts?per_page=100', token);
-  const matches = artifacts.artifacts.filter(item => item.name === 'graphify-robo-' + run.head_sha && !item.expired);
+  const matches = artifacts.artifacts.filter(item => item.name === 'graphify-' + project.prefix + '-' + run.head_sha && !item.expired);
   const artifact = matches[0];
   if (matches.length !== 1 || !Number.isSafeInteger(artifact.id) ||
       !Number.isSafeInteger(artifact.size_in_bytes) || artifact.size_in_bytes < 1 ||
@@ -34,8 +60,8 @@ function graphifyBackupLatest(token, scheduledSource) {
     throw new Error('Expected one bounded, unexpired Graphify artifact with a SHA-256 digest.');
   }
   graphifyBackup(
-    api + '/artifacts/' + artifact.id + '/zip',
-    'graphify-robo-' + run.head_sha.slice(0, 12) + '-' + artifact.id + '.zip',
+    project.folder, api + '/artifacts/' + artifact.id + '/zip',
+    'graphify-' + project.prefix + '-' + run.head_sha.slice(0, 12) + '-' + artifact.id + '.zip',
     artifact.digest.slice(7), artifact.size_in_bytes, token
   );
 }
@@ -60,8 +86,7 @@ function graphifyGitHubJson(url, token) {
   return JSON.parse(response.getContentText());
 }
 
-function graphifyBackup(artifactUrl, name, expectedSha, expectedSize, token) {
-  const folderId = '1q_DzAkxFveq1YS3nqbeOIfN958jHorqw';
+function graphifyBackup(folderId, artifactUrl, name, expectedSha, expectedSize, token) {
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(5000)) throw new Error('A Graphify backup is already running.');
   try {
@@ -124,7 +149,7 @@ function graphifySha256(bytes) {
     .join('');
 }
 
-function graphifyInstallationToken() {
+function graphifyInstallationToken(repoId) {
   const encodedKey = PropertiesService.getScriptProperties().getProperty('GRAPHIFY_GITHUB_APP_KEY');
   if (!encodedKey) throw new Error('Missing GRAPHIFY_GITHUB_APP_KEY in Script Properties.');
   const now = Math.floor(Date.now() / 1000);
@@ -141,7 +166,7 @@ function graphifyInstallationToken() {
   const response = graphifyFetch('https://api.github.com/app/installations/180609533/access_tokens', {
     method: 'post',
     contentType: 'application/json',
-    payload: JSON.stringify({repository_ids: [1448917996], permissions: {actions: 'read'}}),
+    payload: JSON.stringify({repository_ids: [repoId], permissions: {actions: 'read'}}),
     followRedirects: false,
     muteHttpExceptions: true,
     headers: graphifyGitHubHeaders(data + '.' + encode(signature)),
