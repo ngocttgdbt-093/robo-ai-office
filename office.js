@@ -214,6 +214,12 @@ const screenModes = {
   implementation: { title:'Đang thực hiện', lines:['Đã nhận tín hiệu thực hiện'] },
   verification: { title:'Đang kiểm thử', lines:['Đã nhận tín hiệu kiểm thử', 'Đang chờ bằng chứng kết quả'] },
 };
+const activityLabels = {
+  started: 'Bắt đầu tác vụ', edited: 'Đã cập nhật tệp', command_running: 'Đang chạy lệnh',
+  command_failed: 'Lệnh gặp lỗi', test_running: 'Đang chạy kiểm thử',
+  test_failed: 'Kiểm thử thất bại', test_passed: 'Kiểm thử thành công',
+  completed: 'Codex đã hoàn tất', failed: 'Lượt chạy Codex thất bại',
+};
 function paintWorkScreen(task, live = false) {
   const ci = !task && !serverRunning ? ciRun : null;
   const active = live || serverRunning;
@@ -225,21 +231,25 @@ function paintWorkScreen(task, live = false) {
     : active ? 'DỰ ÁN ĐANG CHẠY' : 'VĂN PHÒNG ĐIỀU HÀNH';
   byId('project-led').setAttribute('data-active', active);
   const mode = live ? screenModes[task.phase] : null;
-  const outcome = {completed:'Hoàn tất', failed:'Gặp lỗi', running:'Chưa có cập nhật mới'};
+  const outcome = {completed:'Hoàn tất', failed:'Gặp lỗi', running:'Mất tín hiệu phiên thực thi'};
   byId('work-screen').setAttribute('data-mode', live ? task.phase : 'idle');
   byId('screen-task').textContent = ci?.name ?? task?.title ?? '';
-  byId('screen-source').textContent = live ? 'TÍN HIỆU WORK' : serverRunning || ci ? 'GITHUB' : 'TỔNG QUAN';
+  byId('screen-source').textContent = task?.agent === 'Codex' && task.timeline?.length ? 'CODEX LIVE' : live ? 'TÍN HIỆU WORK' : serverRunning || ci ? 'GITHUB' : 'TỔNG QUAN';
   byId('screen-run-link').hidden = !ci;
   if (ci) byId('screen-run-link').setAttribute('href', ci.url);
   byId('work-screen').setAttribute('data-ci-result', ci?.conclusion ?? '');
-  byId('screen-heading').textContent = ci ? ciLabel(ci) : serverRunning && !live ? 'Đang đọc commit GitHub' : mode?.title ?? (task ? outcome[task.status] : 'Đang chờ tín hiệu Work');
+  byId('screen-heading').textContent = ci ? ciLabel(ci) : serverRunning && !live ? 'Đang đọc commit GitHub' : mode?.title ?? (task ? outcome[task.status] : workSignalUnavailable ? 'Mất kết nối nguồn trạng thái' : 'Đang chờ tín hiệu Work');
   byId('screen-note').textContent = ci ? (ci.source === 'render' ? 'GitHub Actions qua Render' : 'GitHub Actions trực tiếp') +
     (ci.updated ? ' · ' + new Date(ci.updated).toLocaleString('vi-VN',{timeZone:'Asia/Ho_Chi_Minh'}) : '') : mode
     ? task.agent + ' · ' + phaseLabels[task.phase] + ' · Tín hiệu từ phiên thực thi'
     : task ? task.agent + ' · ' + phaseLabels[task.phase] : 'Chế độ hiển thị sẽ đổi theo giai đoạn của tác vụ.';
-  byId('screen-lines').replaceChildren(...(mode?.lines ?? []).map(text => {
+  const timeline = task?.timeline?.length ? task.timeline.map(entry =>
+    date(entry.updated) + ' · ' + (activityLabels[entry.activity] ?? phaseLabels[entry.phase])) : mode?.lines ?? [];
+  byId('screen-lines').replaceChildren(...timeline.map((text, index) => {
     const row = document.createElement('li');
     row.textContent = text;
+    const activity = task?.timeline?.[index]?.activity;
+    if (activity?.endsWith('failed')) row.setAttribute('data-result', 'failed');
     return row;
   }));
 }
@@ -270,7 +280,7 @@ let wallConnected = false;
 function paintWallFlow(tasks, now = Date.now(), connected = true) {
   wallTasks = tasks;
   wallConnected = connected;
-  const active = tasks.filter(task => task.status === 'running' && now - Date.parse(task.updated) < 600000);
+  const active = tasks.filter(task => task.status === 'running' && now - Date.parse(task.updated) < (task.timeline?.length ? 95_000 : 600_000));
   const transfers = new Map();
   for (const task of active) {
     if (!wallTeams[task.previous] || !wallTeams[task.phase] || task.previous === task.phase) continue;
@@ -431,7 +441,7 @@ async function refreshWork() {
     byId('live-flows').replaceChildren();
     byId('work-list').replaceChildren(...tasks.map(task => {
       const age = now - Date.parse(task.updated);
-      const live = task.status === 'running' && age < 10 * 60_000;
+      const live = task.status === 'running' && age < (task.timeline?.length ? 95_000 : 600_000);
       if (live) {
         const zone = phaseZones[task.phase];
         if (!activeWork.has(zone)) activeWork.set(zone, task);
@@ -442,7 +452,7 @@ async function refreshWork() {
       const title = document.createElement('strong');
       title.textContent = task.title;
       const note = document.createElement('p');
-      const status = {completed:'Hoàn tất',failed:'Gặp lỗi',running:live ? 'Đang thực hiện' : 'Chưa có cập nhật mới'};
+      const status = {completed:'Hoàn tất',failed:'Gặp lỗi',running:live ? 'Đang thực hiện' : 'Mất tín hiệu phiên thực thi'};
       note.textContent = status[task.status] + ' · ' + phaseLabels[task.phase] + ' · ' + date(task.updated);
       const badge = document.createElement('p');
       badge.className = 'worker-badge';
@@ -450,7 +460,7 @@ async function refreshWork() {
       row.append(title,note,badge);
       return row;
     }));
-    const isLive = task => task.status === 'running' && now - Date.parse(task.updated) < 10 * 60_000;
+    const isLive = task => task.status === 'running' && now - Date.parse(task.updated) < (task.timeline?.length ? 95_000 : 600_000);
     workSignalUnavailable = false;
     paintProjectPicker(tasks);
     const liveTasks = tasks.filter(isLive);

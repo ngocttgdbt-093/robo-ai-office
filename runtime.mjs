@@ -7,6 +7,8 @@ const json = (data, status = 200) => Response.json(data, {
 });
 
 const workPhases = ['planning', 'implementation', 'verification'];
+const activities = ['started', 'edited', 'command_running', 'command_failed',
+  'test_running', 'test_failed', 'test_passed', 'heartbeat', 'completed', 'failed'];
 const workStatuses = ['running', 'completed', 'failed'];
 
 async function workEvents(request, env) {
@@ -20,33 +22,38 @@ async function workEvents(request, env) {
       const { results } = await sql(`SELECT w.id, w.title, w.phase, w.previous, w.status, w.updated, w.agent, w.skills, w.project,
         (SELECT first.updated FROM work_events first WHERE first.id = w.id AND first.seq =
           1 + coalesce((SELECT max(prior.seq) FROM work_events prior
-            WHERE prior.id = w.id AND prior.seq < w.seq AND prior.phase <> w.phase), 0)) AS phase_started
+            WHERE prior.id = w.id AND prior.seq < w.seq AND prior.phase <> w.phase), 0)) AS phase_started,
+        (SELECT json_group_array(json_object('activity', activity, 'phase', phase, 'updated', updated))
+          FROM (SELECT activity, phase, updated FROM work_events
+            WHERE id = w.id AND activity IS NOT NULL AND activity <> 'heartbeat'
+            ORDER BY seq DESC LIMIT 12)) AS timeline
         FROM work_events w WHERE NOT EXISTS (
           SELECT 1 FROM work_events next WHERE next.id = w.id AND next.seq > w.seq
         ) ORDER BY w.updated DESC, w.seq DESC LIMIT 20`).all();
-      return json(results.map(event => ({ ...event, skills: JSON.parse(event.skills) })));
+      return json(results.map(event => ({ ...event, skills: JSON.parse(event.skills), timeline: JSON.parse(event.timeline).reverse() })));
     }
     if (request.method !== 'POST') return json({ error: 'Phương thức không hỗ trợ.' }, 405);
     if (request.headers.get('Content-Type')?.split(';')[0] !== 'application/json') return json({ error: 'Định dạng không hỗ trợ.' }, 415);
     const body = await request.text();
     if (body.length > 1024) return json({ error: 'Yêu cầu quá lớn.' }, 413);
-    const { id, title, phase, status, seq, agent, skills = [], project = null } = JSON.parse(body) ?? {};
+    const { id, title, phase, status, seq, agent, skills = [], project = null, activity = null } = JSON.parse(body) ?? {};
     if (typeof id !== 'string' || !/^[a-f0-9-]{36}$/.test(id) ||
         typeof title !== 'string' || !title.trim() || title.length > 120 ||
         typeof agent !== 'string' || !agent.trim() || agent.length > 40 ||
         (project !== null && (typeof project !== 'string' || !project.trim() || project.length > 100)) ||
         !Array.isArray(skills) || skills.length > 5 ||
         skills.some(skill => typeof skill !== 'string' || !skill.trim() || skill.length > 48) ||
+        (activity !== null && !activities.includes(activity)) ||
         !workPhases.includes(phase) || !workStatuses.includes(status) ||
         !Number.isSafeInteger(seq) || seq < 1) return json({ error: 'Sự kiện không hợp lệ.' }, 400);
 
-    const result = await sql(`INSERT INTO work_events (id, seq, title, phase, previous, status, updated, agent, skills, project)
-      SELECT ?, ?, ?, ?, CASE WHEN prior.phase <> ? THEN prior.phase ELSE prior.previous END, ?, ?, ?, ?, coalesce(?, prior.project)
+    const result = await sql(`INSERT INTO work_events (id, seq, title, phase, previous, status, updated, agent, skills, project, activity)
+      SELECT ?, ?, ?, ?, CASE WHEN prior.phase <> ? THEN prior.phase ELSE prior.previous END, ?, ?, ?, ?, coalesce(?, prior.project), ?
       FROM (SELECT 1) seed LEFT JOIN work_events prior ON prior.id = ?
         AND prior.seq = (SELECT max(seq) FROM work_events WHERE id = ?)
       WHERE (prior.id IS NULL AND ? = 1 AND ? = 'running')
          OR (prior.status = 'running' AND prior.seq + 1 = ?)`,
-      id, seq, title.trim(), phase, phase, status, new Date().toISOString(), agent.trim(), JSON.stringify([...new Set(skills.map(skill => skill.trim()))]), project?.trim() ?? null, id, id, seq, status, seq).run();
+      id, seq, title.trim(), phase, phase, status, new Date().toISOString(), agent.trim(), JSON.stringify([...new Set(skills.map(skill => skill.trim()))]), project?.trim() ?? null, activity, id, id, seq, status, seq).run();
     return (result.meta?.changes ?? result.changes) === 1
       ? json({ accepted: true }) : json({ error: 'Sự kiện đã được ghi hoặc sai thứ tự.' }, 409);
   } catch (error) {

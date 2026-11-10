@@ -193,3 +193,17 @@ test('only overflowing LED titles scroll', () => {
   evaluate('fitLed()');
   assert.ok(!viewport.classes.has('is-overflowing'));
 });
+
+test('central monitor shows the observed Codex timeline and stops on signal loss', () => {
+  const { get, evaluate } = office();
+  evaluate(`const date = () => '22:14';
+    paintWorkScreen({phase:'verification',status:'completed',agent:'Codex',title:'Kiểm tra',
+      timeline:[{activity:'test_failed'}, {activity:'test_passed'}, {activity:'completed'}]})`);
+  assert.equal(get('screen-source').textContent, 'CODEX LIVE');
+  assert.equal(get('screen-heading').textContent, 'Hoàn tất');
+  assert.deepEqual(get('screen-lines').children.map(row => row.textContent), [
+    '22:14 · Kiểm thử thất bại', '22:14 · Kiểm thử thành công', '22:14 · Codex đã hoàn tất',
+  ]);
+  evaluate(`workSignalUnavailable = true; paintWorkScreen(null)`);
+  assert.match(get('screen-heading').textContent, /Mất kết nối/);
+});

@@ -88,3 +88,5 @@ main{max-width:1560px;margin:auto;padding:clamp(14px,3vw,40px)}.intro{margin-bot
 .map-ear{fill:#273b45}.room.is-running .map-ear{animation:ear-blink 1.35s steps(1,end) infinite;fill:#070b0e}
 @keyframes ear-blink{0%,100%{fill:#070b0e;stroke:#26353d}45%{fill:#4ae8ef;stroke:#c8faff}}
 @media(prefers-reduced-motion:reduce){.wall-station[data-working=true] .station-ear,.room.is-running .map-ear{animation:none;fill:#218eaa}}
+
+#screen-lines li[data-result="failed"] { color: #ff9c9c; }

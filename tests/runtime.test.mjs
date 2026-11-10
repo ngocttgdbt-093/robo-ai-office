@@ -12,6 +12,7 @@ function setup(upstream = async () => Response.json([{
   db.exec(readFileSync(new URL('../drizzle/0000_runs.sql', import.meta.url), 'utf8'));
   db.exec(readFileSync(new URL('../drizzle/0001_work_events.sql', import.meta.url), 'utf8'));
   db.exec(readFileSync(new URL('../drizzle/0002_work_project.sql', import.meta.url), 'utf8'));
+  db.exec(readFileSync(new URL('../drizzle/0003_work_activity.sql', import.meta.url), 'utf8'));
   const DB = { prepare(sql) {
     return { bind(...args) {
       const statement = db.prepare(sql);
@@ -113,4 +114,20 @@ test('uses fresh Render workflow data and falls back when the bridge snapshot is
     assert.equal(calls.length, stale ? 2 : 1);
     if (!stale) assert.equal(body.runs[0].id, 42);
   }
+});
+
+test('preserves the test failure and retry in the timeline after completion', async () => {
+  const request = setup();
+  const event = { id: crypto.randomUUID(), title: 'Test retry', agent: 'Codex', phase: 'verification' };
+  for (const [index, activity] of ['test_running', 'test_failed', 'heartbeat', 'test_passed', 'completed'].entries()) {
+    const response = await request('work', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Robo-Bridge': 'test-bridge' },
+      body: JSON.stringify({ ...event, seq: index + 1, activity, status: activity === 'completed' ? 'completed' : 'running' }),
+    });
+    assert.equal(response.status, 200);
+  }
+  const [task] = await (await request('work')).json();
+  assert.equal(task.status, 'completed');
+  assert.deepEqual(task.timeline.map(entry => entry.activity), ['test_running', 'test_failed', 'test_passed', 'completed']);
 });
