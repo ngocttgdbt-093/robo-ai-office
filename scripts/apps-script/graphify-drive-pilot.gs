@@ -16,8 +16,21 @@ const GRAPHIFY_PROJECTS = Object.freeze({
 
 function verifyGraphifyDrivePilot() {
   const properties = PropertiesService.getScriptProperties();
-  const project = GRAPHIFY_PROJECTS.robo;
-  graphifyBackupLatest(project, properties.getProperty('GRAPHIFY_USE_MAIN') !== 'false');
+  if (properties.getProperty('GRAPHIFY_USE_MAIN') === 'false') {
+    graphifyBackupLatest(GRAPHIFY_PROJECTS.robo, false);
+    return;
+  }
+  const failed = [];
+  for (const project of Object.values(GRAPHIFY_PROJECTS)) {
+    try {
+      graphifyBackupLatest(project, true);
+      console.log(project.repo + ': Drive verification completed.');
+    } catch (_) {
+      failed.push(project.repo);
+      console.error(project.repo + ': scheduled Drive verification failed.');
+    }
+  }
+  if (failed.length) throw new Error('Graphify backup failed for: ' + failed.join(', '));
 }
 
 function verifyGraphifyGitHubApp() {
