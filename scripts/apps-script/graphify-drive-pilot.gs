@@ -3,17 +3,20 @@
  * Store a repository-limited, Actions read-only GitHub token in Script Properties.
  */
 function verifyGraphifyDrivePilot() {
-  const branch = 'feat/graphify-drive-backup-20261110';
+  const properties = PropertiesService.getScriptProperties();
+  const scheduledSource = properties.getProperty('GRAPHIFY_USE_MAIN') === 'true';
+  const branch = scheduledSource ? 'main' : 'feat/graphify-drive-backup-20261110';
+  const event = scheduledSource ? 'schedule' : 'push';
   const api = 'https://api.github.com/repos/ngocttgdbt-093/robo-ai-office/actions';
-  const token = PropertiesService.getScriptProperties().getProperty('GRAPHIFY_GITHUB_READ_TOKEN');
+  const token = properties.getProperty('GRAPHIFY_GITHUB_READ_TOKEN');
   if (!token) throw new Error('Missing GRAPHIFY_GITHUB_READ_TOKEN in Script Properties.');
 
   const runs = graphifyGitHubJson(
-    api + '/workflows/413434772/runs?status=success&event=push&per_page=1&branch=' + encodeURIComponent(branch),
+    api + '/workflows/413434772/runs?status=success&per_page=1&event=' + event + '&branch=' + encodeURIComponent(branch),
     token
   );
   const run = runs.workflow_runs?.[0];
-  if (run?.head_branch !== branch || run.conclusion !== 'success' ||
+  if (run?.head_branch !== branch || run.conclusion !== 'success' || run.event !== event ||
       run.head_repository?.id !== 1448917996 || !Number.isSafeInteger(run.id) ||
       !/^[a-f0-9]{40}$/.test(run.head_sha)) {
     throw new Error('No successful Graphify run found on the approved branch.');

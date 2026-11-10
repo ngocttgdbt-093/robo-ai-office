@@ -8,6 +8,8 @@ on:
       - 'scripts/test_graphify_drive_backup.py'
   push:
     branches: [main, feat/graphify-drive-backup-20261110]
+  schedule:
+    - cron: '20 20 * * *' # 03:20 Asia/Ho_Chi_Minh
   workflow_dispatch:
     inputs:
       upload_to_drive:
@@ -24,6 +26,7 @@ concurrency:
 
 jobs:
   graphify:
+    if: github.event_name != 'schedule' || vars.GRAPHIFY_SCHEDULE_ENABLED == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
