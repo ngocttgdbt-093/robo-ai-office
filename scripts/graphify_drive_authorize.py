@@ -68,11 +68,11 @@ def authorize(client_id, client_secret, picker_key):
         def log_message(self, *args):
             pass
 
-        def page(self, html, status=200):
+        def page(self, html, status=200, *, referrer_policy="no-referrer"):
             self.send_response(status)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Cache-Control", "no-store")
-            self.send_header("Referrer-Policy", "no-referrer")
+            self.send_header("Referrer-Policy", referrer_policy)
             self.end_headers()
             self.wfile.write(html.encode())
 
@@ -144,7 +144,7 @@ function loadPicker() {
       }).build().setVisible(true);
   });
 }
-</script><script src="https://apis.google.com/js/api.js" onload="loadPicker()"></script>""")
+</script><script src="https://apis.google.com/js/api.js" onload="loadPicker()"></script>""", referrer_policy="strict-origin")
             elif request.path == "/verify/" + state and token_data.get("refresh_token") and token_data.get("scope") == SCOPE:
                 verified = can_add_children(token_data["access_token"])
                 self.page("Backup folder verified. Return to the terminal." if verified
