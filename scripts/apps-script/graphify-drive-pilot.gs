@@ -4,13 +4,19 @@
  */
 function verifyGraphifyDrivePilot() {
   const properties = PropertiesService.getScriptProperties();
-  const scheduledSource = properties.getProperty('GRAPHIFY_USE_MAIN') === 'true';
+  const token = properties.getProperty('GRAPHIFY_GITHUB_READ_TOKEN');
+  if (!token) throw new Error('Missing GRAPHIFY_GITHUB_READ_TOKEN in Script Properties.');
+  graphifyBackupLatest(token, properties.getProperty('GRAPHIFY_USE_MAIN') !== 'false');
+}
+
+function verifyGraphifyGitHubApp() {
+  graphifyBackupLatest(graphifyInstallationToken(), false);
+}
+
+function graphifyBackupLatest(token, scheduledSource) {
   const branch = scheduledSource ? 'main' : 'feat/graphify-drive-backup-20261110';
   const event = scheduledSource ? 'schedule' : 'push';
   const api = 'https://api.github.com/repos/ngocttgdbt-093/robo-ai-office/actions';
-  const token = properties.getProperty('GRAPHIFY_GITHUB_READ_TOKEN');
-  if (!token) throw new Error('Missing GRAPHIFY_GITHUB_READ_TOKEN in Script Properties.');
-
   const runs = graphifyGitHubJson(
     api + '/workflows/413434772/runs?status=success&per_page=1&event=' + event + '&branch=' + encodeURIComponent(branch),
     token
@@ -118,4 +124,59 @@ function graphifySha256(bytes) {
   return Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, bytes)
     .map(value => ('0' + ((value + 256) % 256).toString(16)).slice(-2))
     .join('');
+}
+
+function graphifyInstallationToken() {
+  const encodedKey = PropertiesService.getScriptProperties().getProperty('GRAPHIFY_GITHUB_APP_KEY');
+  if (!encodedKey) throw new Error('Missing GRAPHIFY_GITHUB_APP_KEY in Script Properties.');
+  const now = Math.floor(Date.now() / 1000);
+  const encode = value => Utilities.base64EncodeWebSafe(value).replace(/=+$/, '');
+  const data = encode(JSON.stringify({alg: 'RS256', typ: 'JWT'})) + '.' +
+    encode(JSON.stringify({iat: now - 60, exp: now + 480, iss: '5700656'}));
+  let signature;
+  try {
+    const pem = Utilities.newBlob(Utilities.base64Decode(encodedKey)).getDataAsString().trim();
+    signature = Utilities.computeRsaSha256Signature(data, graphifyPkcs8(pem));
+  } catch (_) {
+    throw new Error('GitHub App private key could not be read or used.');
+  }
+  const response = graphifyFetch('https://api.github.com/app/installations/180609533/access_tokens', {
+    method: 'post',
+    contentType: 'application/json',
+    payload: JSON.stringify({repository_ids: [1448917996], permissions: {actions: 'read'}}),
+    followRedirects: false,
+    muteHttpExceptions: true,
+    headers: graphifyGitHubHeaders(data + '.' + encode(signature)),
+  });
+  if (response.getResponseCode() !== 201) {
+    throw new Error('GitHub App token request failed (HTTP ' + response.getResponseCode() + ').');
+  }
+  const result = JSON.parse(response.getContentText());
+  if (typeof result.token !== 'string' || !result.token || result.permissions?.actions !== 'read') {
+    throw new Error('GitHub App did not return an Actions read-only token.');
+  }
+  return result.token;
+}
+
+function graphifyPkcs8(pem) {
+  if (/^-----BEGIN PRIVATE KEY-----/.test(pem)) return pem;
+  const match = /^-----BEGIN RSA PRIVATE KEY-----\s+([A-Za-z0-9+/=\s]+)-----END RSA PRIVATE KEY-----$/.exec(pem);
+  if (!match) throw new Error('Unsupported PEM format.');
+  const rsa = Utilities.base64Decode(match[1].replace(/\s/g, ''));
+  const der = (tag, bytes) => {
+    let size = bytes.length;
+    const octets = [];
+    while (size > 0) {
+      octets.unshift(size % 256);
+      size = Math.floor(size / 256);
+    }
+    const length = bytes.length < 128 ? [bytes.length] : [128 + octets.length, ...octets];
+    return [tag, ...length, ...bytes];
+  };
+  const rsaAlgorithm = [48, 13, 6, 9, 42, 134, 72, 134, 247, 13, 1, 1, 1, 5, 0];
+  const wrapped = der(48, [2, 1, 0, ...rsaAlgorithm, ...der(4, rsa)])
+    .map(value => value > 127 ? value - 256 : value);
+  return '-----BEGIN PRIVATE KEY-----\n' +
+    Utilities.base64Encode(wrapped).match(/.{1,64}/g).join('\n') +
+    '\n-----END PRIVATE KEY-----';
 }
