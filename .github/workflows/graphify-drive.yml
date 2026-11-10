@@ -21,7 +21,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: graphify-${{ github.ref }}
+  group: graphify-${{ github.ref }}-${{ github.event_name == 'schedule' && 'scheduled' || 'ci' }}
   cancel-in-progress: true
 
 jobs:
@@ -37,7 +37,7 @@ jobs:
         run: |
           python3 -m pip install --user pipx
           python3 -m pipx ensurepath
-          python3 -m pipx install graphifyy
+          python3 -m pipx install graphifyy==0.9.105
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: Generate local code graph
         run: |

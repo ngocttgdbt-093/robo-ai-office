@@ -31,7 +31,7 @@ function verifyGraphifyDrivePilot() {
   }
   graphifyBackup(
     api + '/artifacts/' + artifact.id + '/zip',
-    'graphify-robo-' + run.head_sha.slice(0, 12) + '-apps-script-pilot.zip',
+    'graphify-robo-' + run.head_sha.slice(0, 12) + '-' + artifact.id + '.zip',
     artifact.digest.slice(7), artifact.size_in_bytes, token
   );
 }
