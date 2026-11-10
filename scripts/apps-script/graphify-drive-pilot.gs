@@ -1,12 +1,10 @@
 /**
  * Manual backup trial for the latest successful ROBO AI OFFICE branch artifact.
- * Store a repository-limited, Actions read-only GitHub token in Script Properties.
+ * The GitHub App mints a repository-limited, Actions read-only token per run.
  */
 function verifyGraphifyDrivePilot() {
   const properties = PropertiesService.getScriptProperties();
-  const token = properties.getProperty('GRAPHIFY_GITHUB_READ_TOKEN');
-  if (!token) throw new Error('Missing GRAPHIFY_GITHUB_READ_TOKEN in Script Properties.');
-  graphifyBackupLatest(token, properties.getProperty('GRAPHIFY_USE_MAIN') !== 'false');
+  graphifyBackupLatest(graphifyInstallationToken(), properties.getProperty('GRAPHIFY_USE_MAIN') !== 'false');
 }
 
 function verifyGraphifyGitHubApp() {
