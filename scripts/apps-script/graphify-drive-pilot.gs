@@ -1,28 +1,92 @@
 /**
- * Manual backup trial for the latest successful ROBO AI OFFICE branch artifact.
- * Store a repository-limited, Actions read-only GitHub token in Script Properties.
+ * Back up verified Graphify artifacts to their assigned Google Drive folders.
+ * The GitHub App mints a repository-limited, Actions read-only token per run.
  */
-function verifyGraphifyDrivePilot() {
-  const properties = PropertiesService.getScriptProperties();
-  const scheduledSource = properties.getProperty('GRAPHIFY_USE_MAIN') === 'true';
-  const branch = scheduledSource ? 'main' : 'feat/graphify-drive-backup-20261110';
-  const event = scheduledSource ? 'schedule' : 'push';
-  const api = 'https://api.github.com/repos/ngocttgdbt-093/robo-ai-office/actions';
-  const token = properties.getProperty('GRAPHIFY_GITHUB_READ_TOKEN');
-  if (!token) throw new Error('Missing GRAPHIFY_GITHUB_READ_TOKEN in Script Properties.');
+const GRAPHIFY_PROJECTS = Object.freeze({
+  robo: {repo: 'robo-ai-office', id: 1448917996, workflow: 413434772,
+    folder: '1q_DzAkxFveq1YS3nqbeOIfN958jHorqw', prefix: 'robo',
+    testBranch: 'feat/graphify-drive-backup-20261110'},
+  dashboard: {repo: 'pti093db', id: 1443937630, workflow: 413612305,
+    folder: '15sWtMe4aL23SvBhGmi7l2_AU-lLXHvqL', prefix: 'pti093db'},
+  ghep093: {repo: 'pti093', id: 1403350518, workflow: 413612019,
+    folder: '1slPbX7N0PNp1sAiZXTmbd78N7VM-OKj0', prefix: 'pti093'},
+  ghepPti: {repo: 'pti', id: 1416385433, workflow: 413612517,
+    folder: '113dna1FSaxLrDQuC5qodFQjo5khxrplW', prefix: 'pti'},
+});
 
+function verifyGraphifyDrivePilot() {
+  const verificationDay = graphifyLocalDay(new Date());
+  const properties = PropertiesService.getScriptProperties();
+  if (properties.getProperty('GRAPHIFY_USE_MAIN') === 'false') {
+    graphifyBackupLatest(GRAPHIFY_PROJECTS.robo, false);
+    return;
+  }
+  const failed = [];
+  for (const project of Object.values(GRAPHIFY_PROJECTS)) {
+    try {
+      graphifyBackupLatest(project, true);
+      console.log(project.repo + ': Drive verification completed.');
+    } catch (_) {
+      failed.push(project.repo);
+      console.error(project.repo + ': scheduled Drive verification failed.');
+    }
+  }
+  if (failed.length) throw new Error('Graphify backup failed for: ' + failed.join(', '));
+  properties.setProperty('GRAPHIFY_LAST_VERIFIED_DAY', verificationDay);
+}
+
+function graphifyLocalDay(date) {
+  return Utilities.formatDate(date, 'Asia/Ho_Chi_Minh', 'yyyy-MM-dd');
+}
+
+function retryGraphifyDailyBackup() {
+  const now = new Date();
+  if (Number(Utilities.formatDate(now, 'Asia/Ho_Chi_Minh', 'H')) < 5) return;
+  const properties = PropertiesService.getScriptProperties();
+  if (properties.getProperty('GRAPHIFY_LAST_VERIFIED_DAY') === graphifyLocalDay(now)) {
+    console.log('All four Graphify backups already verified for today.');
+    return;
+  }
+  verifyGraphifyDrivePilot();
+}
+
+function verifyGraphifyGitHubApp() {
+  graphifyBackupLatest(GRAPHIFY_PROJECTS.robo, false);
+}
+
+function verifyDashboard093Graphify() {
+  graphifyBackupLatest(GRAPHIFY_PROJECTS.dashboard, false);
+}
+
+function verifyGhepAnh093Graphify() {
+  graphifyBackupLatest(GRAPHIFY_PROJECTS.ghep093, false);
+}
+
+function verifyGhepAnhPtiGraphify() {
+  graphifyBackupLatest(GRAPHIFY_PROJECTS.ghepPti, false);
+}
+
+function graphifyBackupLatest(project, scheduledSource) {
+  const token = graphifyInstallationToken(project.id);
+  const branch = scheduledSource ? 'main' : (project.testBranch || 'test/graphify-drive-20261111');
+  const event = scheduledSource ? 'schedule' : 'push';
+  const api = 'https://api.github.com/repos/ngocttgdbt-093/' + project.repo + '/actions';
   const runs = graphifyGitHubJson(
-    api + '/workflows/413434772/runs?status=success&per_page=1&event=' + event + '&branch=' + encodeURIComponent(branch),
+    api + '/workflows/' + project.workflow + '/runs?status=success&per_page=1&event=' + event + '&branch=' + encodeURIComponent(branch),
     token
   );
   const run = runs.workflow_runs?.[0];
   if (run?.head_branch !== branch || run.conclusion !== 'success' || run.event !== event ||
-      run.head_repository?.id !== 1448917996 || !Number.isSafeInteger(run.id) ||
+      run.head_repository?.id !== project.id || !Number.isSafeInteger(run.id) ||
       !/^[a-f0-9]{40}$/.test(run.head_sha)) {
     throw new Error('No successful Graphify run found on the approved branch.');
   }
+  if (scheduledSource && (!run.created_at ||
+      graphifyLocalDay(new Date(run.created_at)) !== graphifyLocalDay(new Date()))) {
+    throw new Error('Waiting for today scheduled Graphify run.');
+  }
   const artifacts = graphifyGitHubJson(api + '/runs/' + run.id + '/artifacts?per_page=100', token);
-  const matches = artifacts.artifacts.filter(item => item.name === 'graphify-robo-' + run.head_sha && !item.expired);
+  const matches = artifacts.artifacts.filter(item => item.name === 'graphify-' + project.prefix + '-' + run.head_sha && !item.expired);
   const artifact = matches[0];
   if (matches.length !== 1 || !Number.isSafeInteger(artifact.id) ||
       !Number.isSafeInteger(artifact.size_in_bytes) || artifact.size_in_bytes < 1 ||
@@ -30,8 +94,8 @@ function verifyGraphifyDrivePilot() {
     throw new Error('Expected one bounded, unexpired Graphify artifact with a SHA-256 digest.');
   }
   graphifyBackup(
-    api + '/artifacts/' + artifact.id + '/zip',
-    'graphify-robo-' + run.head_sha.slice(0, 12) + '-' + artifact.id + '.zip',
+    project.folder, api + '/artifacts/' + artifact.id + '/zip',
+    'graphify-' + project.prefix + '-' + run.head_sha.slice(0, 12) + '-' + artifact.id + '.zip',
     artifact.digest.slice(7), artifact.size_in_bytes, token
   );
 }
@@ -56,8 +120,7 @@ function graphifyGitHubJson(url, token) {
   return JSON.parse(response.getContentText());
 }
 
-function graphifyBackup(artifactUrl, name, expectedSha, expectedSize, token) {
-  const folderId = '1q_DzAkxFveq1YS3nqbeOIfN958jHorqw';
+function graphifyBackup(folderId, artifactUrl, name, expectedSha, expectedSize, token) {
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(5000)) throw new Error('A Graphify backup is already running.');
   try {
@@ -118,4 +181,59 @@ function graphifySha256(bytes) {
   return Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, bytes)
     .map(value => ('0' + ((value + 256) % 256).toString(16)).slice(-2))
     .join('');
+}
+
+function graphifyInstallationToken(repoId) {
+  const encodedKey = PropertiesService.getScriptProperties().getProperty('GRAPHIFY_GITHUB_APP_KEY');
+  if (!encodedKey) throw new Error('Missing GRAPHIFY_GITHUB_APP_KEY in Script Properties.');
+  const now = Math.floor(Date.now() / 1000);
+  const encode = value => Utilities.base64EncodeWebSafe(value).replace(/=+$/, '');
+  const data = encode(JSON.stringify({alg: 'RS256', typ: 'JWT'})) + '.' +
+    encode(JSON.stringify({iat: now - 60, exp: now + 480, iss: '5700656'}));
+  let signature;
+  try {
+    const pem = Utilities.newBlob(Utilities.base64Decode(encodedKey)).getDataAsString().trim();
+    signature = Utilities.computeRsaSha256Signature(data, graphifyPkcs8(pem));
+  } catch (_) {
+    throw new Error('GitHub App private key could not be read or used.');
+  }
+  const response = graphifyFetch('https://api.github.com/app/installations/180609533/access_tokens', {
+    method: 'post',
+    contentType: 'application/json',
+    payload: JSON.stringify({repository_ids: [repoId], permissions: {actions: 'read'}}),
+    followRedirects: false,
+    muteHttpExceptions: true,
+    headers: graphifyGitHubHeaders(data + '.' + encode(signature)),
+  });
+  if (response.getResponseCode() !== 201) {
+    throw new Error('GitHub App token request failed (HTTP ' + response.getResponseCode() + ').');
+  }
+  const result = JSON.parse(response.getContentText());
+  if (typeof result.token !== 'string' || !result.token || result.permissions?.actions !== 'read') {
+    throw new Error('GitHub App did not return an Actions read-only token.');
+  }
+  return result.token;
+}
+
+function graphifyPkcs8(pem) {
+  if (/^-----BEGIN PRIVATE KEY-----/.test(pem)) return pem;
+  const match = /^-----BEGIN RSA PRIVATE KEY-----\s+([A-Za-z0-9+/=\s]+)-----END RSA PRIVATE KEY-----$/.exec(pem);
+  if (!match) throw new Error('Unsupported PEM format.');
+  const rsa = Utilities.base64Decode(match[1].replace(/\s/g, ''));
+  const der = (tag, bytes) => {
+    let size = bytes.length;
+    const octets = [];
+    while (size > 0) {
+      octets.unshift(size % 256);
+      size = Math.floor(size / 256);
+    }
+    const length = bytes.length < 128 ? [bytes.length] : [128 + octets.length, ...octets];
+    return [tag, ...length, ...bytes];
+  };
+  const rsaAlgorithm = [48, 13, 6, 9, 42, 134, 72, 134, 247, 13, 1, 1, 1, 5, 0];
+  const wrapped = der(48, [2, 1, 0, ...rsaAlgorithm, ...der(4, rsa)])
+    .map(value => value > 127 ? value - 256 : value);
+  return '-----BEGIN PRIVATE KEY-----\n' +
+    Utilities.base64Encode(wrapped).match(/.{1,64}/g).join('\n') +
+    '\n-----END PRIVATE KEY-----';
 }
