@@ -15,6 +15,7 @@ const GRAPHIFY_PROJECTS = Object.freeze({
 });
 
 function verifyGraphifyDrivePilot() {
+  const verificationDay = graphifyLocalDay(new Date());
   const properties = PropertiesService.getScriptProperties();
   if (properties.getProperty('GRAPHIFY_USE_MAIN') === 'false') {
     graphifyBackupLatest(GRAPHIFY_PROJECTS.robo, false);
@@ -31,7 +32,7 @@ function verifyGraphifyDrivePilot() {
     }
   }
   if (failed.length) throw new Error('Graphify backup failed for: ' + failed.join(', '));
-  properties.setProperty('GRAPHIFY_LAST_VERIFIED_DAY', graphifyLocalDay(new Date()));
+  properties.setProperty('GRAPHIFY_LAST_VERIFIED_DAY', verificationDay);
 }
 
 function graphifyLocalDay(date) {
