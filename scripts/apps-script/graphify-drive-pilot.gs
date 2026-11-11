@@ -31,6 +31,22 @@ function verifyGraphifyDrivePilot() {
     }
   }
   if (failed.length) throw new Error('Graphify backup failed for: ' + failed.join(', '));
+  properties.setProperty('GRAPHIFY_LAST_VERIFIED_DAY', graphifyLocalDay(new Date()));
+}
+
+function graphifyLocalDay(date) {
+  return Utilities.formatDate(date, 'Asia/Ho_Chi_Minh', 'yyyy-MM-dd');
+}
+
+function retryGraphifyDailyBackup() {
+  const now = new Date();
+  if (Number(Utilities.formatDate(now, 'Asia/Ho_Chi_Minh', 'H')) < 5) return;
+  const properties = PropertiesService.getScriptProperties();
+  if (properties.getProperty('GRAPHIFY_LAST_VERIFIED_DAY') === graphifyLocalDay(now)) {
+    console.log('All four Graphify backups already verified for today.');
+    return;
+  }
+  verifyGraphifyDrivePilot();
 }
 
 function verifyGraphifyGitHubApp() {
@@ -63,6 +79,10 @@ function graphifyBackupLatest(project, scheduledSource) {
       run.head_repository?.id !== project.id || !Number.isSafeInteger(run.id) ||
       !/^[a-f0-9]{40}$/.test(run.head_sha)) {
     throw new Error('No successful Graphify run found on the approved branch.');
+  }
+  if (scheduledSource && (!run.created_at ||
+      graphifyLocalDay(new Date(run.created_at)) !== graphifyLocalDay(new Date()))) {
+    throw new Error('Waiting for today scheduled Graphify run.');
   }
   const artifacts = graphifyGitHubJson(api + '/runs/' + run.id + '/artifacts?per_page=100', token);
   const matches = artifacts.artifacts.filter(item => item.name === 'graphify-' + project.prefix + '-' + run.head_sha && !item.expired);
